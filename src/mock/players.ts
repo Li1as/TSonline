@@ -1,0 +1,126 @@
+import type { Player } from "../types/player";
+
+export const players: Player[] = [
+  {
+    id: "P-1",
+    name: "Ava",
+    color: "#2563eb",
+    seat: "North",
+    isHost: true,
+    isOnline: true,
+  },
+  {
+    id: "P-2",
+    name: "Milo",
+    color: "#f97316",
+    seat: "East",
+    isHost: false,
+    isOnline: true,
+  },
+  {
+    id: "P-3",
+    name: "Lina",
+    color: "#10b981",
+    seat: "South",
+    isHost: false,
+    isOnline: true,
+  },
+  {
+    id: "P-4",
+    name: "Noah",
+    color: "#a855f7",
+    seat: "West",
+    isHost: false,
+    isOnline: false,
+  },
+];
+
+export const roomPlayersById: Record<string, Player[]> = {
+  "RM-2048": players,
+  "RM-1954": [
+    {
+      id: "P-5",
+      name: "Dara",
+      color: "#0f766e",
+      seat: "North",
+      isHost: true,
+      isOnline: true,
+    },
+    {
+      id: "P-6",
+      name: "Ken",
+      color: "#9333ea",
+      seat: "East",
+      isHost: false,
+      isOnline: true,
+    },
+    {
+      id: "P-7",
+      name: "Iris",
+      color: "#ea580c",
+      seat: "South",
+      isHost: false,
+      isOnline: true,
+    },
+    {
+      id: "P-8",
+      name: "Tom",
+      color: "#2563eb",
+      seat: "West",
+      isHost: false,
+      isOnline: true,
+    },
+    {
+      id: "P-9",
+      name: "Zoe",
+      color: "#dc2626",
+      seat: "Scout",
+      isHost: false,
+      isOnline: true,
+    },
+  ],
+  "RM-1821": [
+    {
+      id: "P-10",
+      name: "Nina",
+      color: "#0891b2",
+      seat: "Editor",
+      isHost: true,
+      isOnline: true,
+    },
+    {
+      id: "P-11",
+      name: "Ryo",
+      color: "#65a30d",
+      seat: "Preview",
+      isHost: false,
+      isOnline: true,
+    },
+  ],
+  "RM-1777": [
+    {
+      id: "P-12",
+      name: "Mina",
+      color: "#d946ef",
+      seat: "North",
+      isHost: true,
+      isOnline: true,
+    },
+    {
+      id: "P-13",
+      name: "Cole",
+      color: "#f59e0b",
+      seat: "East",
+      isHost: false,
+      isOnline: true,
+    },
+    {
+      id: "P-14",
+      name: "Jules",
+      color: "#22c55e",
+      seat: "South",
+      isHost: false,
+      isOnline: false,
+    },
+  ],
+};
