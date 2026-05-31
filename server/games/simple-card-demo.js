@@ -2,7 +2,21 @@ import { randomUUID } from "node:crypto";
 import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definition.js";
 
 const suits = ["S", "H", "D", "C"];
-const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const ranks = [
+  "A",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "J",
+  "Q",
+  "K",
+];
 const winningScore = 5;
 
 const rankValues = {
@@ -10,15 +24,15 @@ const rankValues = {
   K: 13,
   Q: 12,
   J: 11,
-  "10": 10,
-  "9": 9,
-  "8": 8,
-  "7": 7,
-  "6": 6,
-  "5": 5,
-  "4": 4,
-  "3": 3,
-  "2": 2,
+  10: 10,
+  9: 9,
+  8: 8,
+  7: 7,
+  6: 6,
+  5: 5,
+  4: 4,
+  3: 3,
+  2: 2,
 };
 
 function createStandardTemplates() {
@@ -51,7 +65,10 @@ function shuffle(cards) {
   const nextCards = [...cards];
   for (let index = nextCards.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(Math.random() * (index + 1));
-    [nextCards[index], nextCards[swapIndex]] = [nextCards[swapIndex], nextCards[index]];
+    [nextCards[index], nextCards[swapIndex]] = [
+      nextCards[swapIndex],
+      nextCards[index],
+    ];
   }
   return nextCards;
 }
@@ -59,8 +76,14 @@ function shuffle(cards) {
 export function createEmptySimpleCardState(players = []) {
   return {
     gameType: "simpleCardDemo",
-    status: players.length === simpleCardDemoDefinition.requiredPlayers ? "ready" : "not_started",
-    phase: players.length === simpleCardDemoDefinition.requiredPlayers ? "ready" : "not_started",
+    status:
+      players.length === simpleCardDemoDefinition.requiredPlayers
+        ? "ready"
+        : "not_started",
+    phase:
+      players.length === simpleCardDemoDefinition.requiredPlayers
+        ? "ready"
+        : "not_started",
     winnerId: null,
     roundId: null,
     roundNumber: 0,
@@ -147,7 +170,8 @@ export function playSimpleCard(state, playerId, cardId) {
   const scoresByPlayerId = roundResult
     ? {
         ...state.scoresByPlayerId,
-        [roundResult.winnerId]: (state.scoresByPlayerId[roundResult.winnerId] ?? 0) + 1,
+        [roundResult.winnerId]:
+          (state.scoresByPlayerId[roundResult.winnerId] ?? 0) + 1,
       }
     : state.scoresByPlayerId;
   const winnerId = getGameWinnerId(scoresByPlayerId);
@@ -173,8 +197,12 @@ export function playSimpleCard(state, playerId, cardId) {
       ...state.lastErrorsByPlayerId,
       [playerId]: "",
     },
-    currentRoundPlays: isRoundComplete || isGameFinished ? [] : currentRoundPlays,
-    roundNumber: isRoundComplete && !isGameFinished ? state.roundNumber + 1 : state.roundNumber,
+    currentRoundPlays:
+      isRoundComplete || isGameFinished ? [] : currentRoundPlays,
+    roundNumber:
+      isRoundComplete && !isGameFinished
+        ? state.roundNumber + 1
+        : state.roundNumber,
     roundLeaderId: nextRoundLeaderId,
     currentPlayerId: isGameFinished
       ? null
@@ -193,8 +221,9 @@ export function playSimpleCard(state, playerId, cardId) {
 
 function getGameWinnerId(scoresByPlayerId) {
   return (
-    Object.entries(scoresByPlayerId).find(([, score]) => score >= winningScore)?.[0] ??
-    null
+    Object.entries(scoresByPlayerId).find(
+      ([, score]) => score >= winningScore,
+    )?.[0] ?? null
   );
 }
 
@@ -205,7 +234,8 @@ export function resolveRound(roundPlays) {
   }
 
   const didFollowSuit = responsePlay.card.suit === leadPlay.card.suit;
-  const didBeatLead = didFollowSuit && responsePlay.card.value > leadPlay.card.value;
+  const didBeatLead =
+    didFollowSuit && responsePlay.card.value > leadPlay.card.value;
   const winnerPlay = didBeatLead ? responsePlay : leadPlay;
 
   return {
@@ -244,7 +274,9 @@ export function canPlayCard(state, playerId, card) {
 }
 
 function getNextPlayerId(players, currentPlayerId) {
-  const currentIndex = players.findIndex((player) => player.id === currentPlayerId);
+  const currentIndex = players.findIndex(
+    (player) => player.id === currentPlayerId,
+  );
   if (currentIndex === -1) {
     return players[0]?.id ?? null;
   }
