@@ -1,5 +1,6 @@
 export type RoomMode = "play" | "edit";
 export type RoomStatus = "waiting" | "running";
+export type GameType = "simpleCardDemo";
 
 export interface Room {
   id: string;
@@ -10,6 +11,10 @@ export interface Room {
   maxPlayers: number;
   gameName: string;
   mapName: string;
+  gameType?: GameType;
+  minPlayers?: number;
+  requiredPlayers?: number;
+  gameStateVersion?: number;
 }
 
 export interface CreateRoomInput {
@@ -18,4 +23,5 @@ export interface CreateRoomInput {
   mapName: string;
   maxPlayers: number;
   mode: RoomMode;
+  gameType?: GameType;
 }

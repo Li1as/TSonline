@@ -1,4 +1,11 @@
 import { randomUUID } from "node:crypto";
+import {
+  applyGameAction,
+  createEmptyGameState,
+  getGameDefinition,
+  startGame,
+  toPublicGameState,
+} from "./games/registry.js";
 
 const initialRooms = [
   {
@@ -13,13 +20,17 @@ const initialRooms = [
   },
   {
     id: "RM-1954",
-    name: "Dungeon Draft",
+    name: "Simple Card Table",
     mode: "play",
-    status: "running",
-    playerCount: 5,
-    maxPlayers: 5,
-    gameName: "Dungeon Delvers",
-    mapName: "Crystal Keep",
+    status: "waiting",
+    playerCount: 2,
+    maxPlayers: 2,
+    minPlayers: 2,
+    requiredPlayers: 2,
+    gameType: "simpleCardDemo",
+    gameStateVersion: 0,
+    gameName: "Simple Card Demo",
+    mapName: "Card Table",
   },
   {
     id: "RM-1821",
@@ -43,9 +54,6 @@ const initialPlayersByRoom = {
   "RM-1954": [
     createPlayer("Dara", "#0f766e", "North", true),
     createPlayer("Ken", "#9333ea", "East"),
-    createPlayer("Iris", "#ea580c", "South"),
-    createPlayer("Tom", "#2563eb", "West"),
-    createPlayer("Zoe", "#dc2626", "Scout"),
   ],
   "RM-1821": [
     createPlayer("Nina", "#0891b2", "Editor", true),
@@ -91,14 +99,22 @@ export function createStore() {
   const rooms = new Map(initialRooms.map((room) => [room.id, { ...room }]));
   const playersByRoom = structuredClone(initialPlayersByRoom);
   const messagesByRoom = structuredClone(initialMessagesByRoom);
+  const gameStatesByRoom = {
+    "RM-1954": createEmptyGameState("simpleCardDemo", playersByRoom["RM-1954"]),
+  };
   const sessions = new Map();
 
   function setSession(clientId, session) {
     sessions.set(clientId, session);
   }
 
-  function getSnapshot() {
-    return { rooms: Array.from(rooms.values()), playersByRoom, messagesByRoom };
+  function getSnapshot(clientId) {
+    return {
+      rooms: Array.from(rooms.values()),
+      playersByRoom,
+      messagesByRoom,
+      gameStatesByRoom: getPublicGameStates(clientId),
+    };
   }
 
   function createRoom(clientId, input) {
@@ -106,13 +122,21 @@ export function createStore() {
     if (!input?.name?.trim() || !input?.gameName?.trim() || !input?.mapName?.trim()) {
       throw new Error("Room name, game name, and map name are required.");
     }
+    const definition = input.mode === "play" ? getGameDefinition(input.gameType) : null;
+    if (input.mode === "play" && !definition) {
+      throw new Error("Play rooms require a supported game type.");
+    }
     const roomId = `RM-${2000 + rooms.size + 1}`;
     const room = {
       id: roomId,
       name: input.name.trim(),
       gameName: input.gameName.trim(),
       mapName: input.mapName.trim(),
-      maxPlayers: input.maxPlayers,
+      maxPlayers: definition?.maxPlayers ?? input.maxPlayers,
+      minPlayers: definition?.minPlayers,
+      requiredPlayers: definition?.requiredPlayers,
+      gameType: input.mode === "play" ? input.gameType : undefined,
+      gameStateVersion: 0,
       mode: input.mode,
       status: "waiting",
       playerCount: 1,
@@ -126,6 +150,9 @@ export function createStore() {
     playersByRoom[roomId] = [
       { ...createPlayer(session.user.name, session.user.color, "Host", true), id: session.user.id },
     ];
+    if (room.gameType) {
+      gameStatesByRoom[roomId] = createEmptyGameState(room.gameType, playersByRoom[roomId]);
+    }
     messagesByRoom[roomId] = [
       createMessage("System", `${room.name} was created in ${room.mode} mode.`, "system"),
     ];
@@ -161,12 +188,61 @@ export function createStore() {
     });
     playersByRoom[roomId] = members;
     room.playerCount = members.length;
+    syncRoomGamePlayers(roomId);
     session.roomId = roomId;
     messagesByRoom[roomId] = [
       ...(messagesByRoom[roomId] ?? []),
       createMessage("System", `${session.user.name} joined the room.`, "system"),
     ];
     return roomId;
+  }
+
+  function startNewGame(clientId, roomId) {
+    const room = rooms.get(roomId);
+    const session = requireSession(clientId);
+    if (!room) {
+      throw new Error("Room not found.");
+    }
+    if (session.roomId !== roomId) {
+      throw new Error("Join the room before starting a game.");
+    }
+    if (!room.gameType) {
+      throw new Error("This room does not have a game type.");
+    }
+
+    const members = playersByRoom[roomId] ?? [];
+    if (members.length !== room.requiredPlayers) {
+      throw new Error(`This game requires exactly ${room.requiredPlayers} players.`);
+    }
+
+    gameStatesByRoom[roomId] = startGame(room.gameType, members);
+    room.status = "running";
+    room.gameStateVersion = gameStatesByRoom[roomId].version;
+    messagesByRoom[roomId] = [
+      ...(messagesByRoom[roomId] ?? []),
+      createMessage("System", `${session.user.name} started a new game.`, "system"),
+    ];
+  }
+
+  function handleGameAction(clientId, roomId, action) {
+    const room = rooms.get(roomId);
+    const session = requireSession(clientId);
+    if (!room) {
+      throw new Error("Room not found.");
+    }
+    if (session.roomId !== roomId) {
+      throw new Error("Join the room before playing.");
+    }
+    if (!room.gameType) {
+      throw new Error("This room does not have a game type.");
+    }
+    const state = gameStatesByRoom[roomId];
+    if (!state) {
+      throw new Error("Game state is not initialized.");
+    }
+
+    gameStatesByRoom[roomId] = applyGameAction(room.gameType, state, session.user.id, action);
+    room.gameStateVersion = gameStatesByRoom[roomId].version;
   }
 
   function sendChat(clientId, roomId, text) {
@@ -203,11 +279,38 @@ export function createStore() {
     );
     playersByRoom[roomId] = members;
     room.playerCount = members.length;
+    syncRoomGamePlayers(roomId);
     if (members.length === 0) {
       rooms.delete(roomId);
       delete playersByRoom[roomId];
       delete messagesByRoom[roomId];
+      delete gameStatesByRoom[roomId];
     }
+  }
+
+  function syncRoomGamePlayers(roomId) {
+    const room = rooms.get(roomId);
+    const state = gameStatesByRoom[roomId];
+    if (!room?.gameType || !state || state.status === "running") {
+      return;
+    }
+    gameStatesByRoom[roomId] = createEmptyGameState(room.gameType, playersByRoom[roomId] ?? []);
+    room.gameStateVersion = gameStatesByRoom[roomId].version;
+  }
+
+  function getPublicGameStates(clientId) {
+    const session = sessions.get(clientId);
+    const result = {};
+    if (!session) {
+      return result;
+    }
+    for (const [roomId, state] of Object.entries(gameStatesByRoom)) {
+      const room = rooms.get(roomId);
+      if (room?.gameType) {
+        result[roomId] = toPublicGameState(room.gameType, state, session.user.id);
+      }
+    }
+    return result;
   }
 
   function requireSession(clientId) {
@@ -218,5 +321,14 @@ export function createStore() {
     return session;
   }
 
-  return { setSession, getSnapshot, createRoom, joinRoom, sendChat, disconnect };
+  return {
+    setSession,
+    getSnapshot,
+    createRoom,
+    joinRoom,
+    sendChat,
+    startNewGame,
+    handleGameAction,
+    disconnect,
+  };
 }

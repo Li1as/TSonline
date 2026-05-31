@@ -1,9 +1,9 @@
 import { Navigate, useParams } from "react-router-dom";
+import { GameTable } from "../components/game/GameTable";
 import { Footer } from "../components/layout/Footer";
 import { TopBar } from "../components/layout/TopBar";
 import { RoomChatSection } from "../components/room/RoomChatSection";
 import { RoomInfoSection } from "../components/room/RoomInfoSection";
-import { RoomTablePlaceholder } from "../components/room/RoomTablePlaceholder";
 import { RoomUsersSection } from "../components/room/RoomUsersSection";
 import { useAppState } from "../state/AppContext";
 
@@ -23,7 +23,7 @@ export function RoomPage() {
         <RoomInfoSection room={room} />
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-          <RoomTablePlaceholder room={room} />
+          <GameTable room={room} />
           <div className="flex flex-col gap-4">
             <RoomUsersSection roomId={room.id} />
             <RoomChatSection roomId={room.id} />

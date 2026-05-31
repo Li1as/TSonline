@@ -15,12 +15,11 @@ function send(socket, type, payload, requestId) {
 }
 
 function broadcastSnapshot() {
-  const snapshot = store.getSnapshot();
   for (const client of wss.clients) {
     if (client.readyState !== client.OPEN) {
       continue;
     }
-    send(client, "state:snapshot", snapshot);
+    send(client, "state:snapshot", store.getSnapshot(client.clientId));
   }
 }
 
@@ -37,10 +36,11 @@ wss.on("connection", (socket) => {
     },
     roomId: null,
   };
+  socket.clientId = clientId;
 
   store.setSession(clientId, session);
   send(socket, "session:ready", { currentUser: session.user });
-  send(socket, "state:snapshot", store.getSnapshot());
+  send(socket, "state:snapshot", store.getSnapshot(clientId));
 
   socket.on("message", (raw) => {
     let requestId;
@@ -63,6 +63,18 @@ wss.on("connection", (socket) => {
       if (type === "chat:send") {
         store.sendChat(clientId, payload.roomId, payload.text.trim());
         send(socket, "chat:send_result", { ok: true }, requestId);
+        broadcastSnapshot();
+        return;
+      }
+      if (type === "game:new") {
+        store.startNewGame(clientId, payload.roomId);
+        send(socket, "game:new_result", { ok: true }, requestId);
+        broadcastSnapshot();
+        return;
+      }
+      if (type === "game:action") {
+        store.handleGameAction(clientId, payload.roomId, payload.action);
+        send(socket, "game:action_result", { ok: true }, requestId);
         broadcastSnapshot();
       }
     } catch (error) {

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppContext";
-import type { RoomMode } from "../../types/room";
+import type { GameType, RoomMode } from "../../types/room";
 import { PanelCard } from "../ui/PanelCard";
 
 export function CreateRoomPanel() {
@@ -12,6 +12,9 @@ export function CreateRoomPanel() {
   const [mapName, setMapName] = useState("Starter Board");
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [mode, setMode] = useState<RoomMode>("edit");
+  const [gameType, setGameType] = useState<GameType>("simpleCardDemo");
+
+  const effectiveMaxPlayers = mode === "play" ? 2 : maxPlayers;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,8 +22,9 @@ export function CreateRoomPanel() {
       name,
       gameName,
       mapName,
-      maxPlayers,
+      maxPlayers: effectiveMaxPlayers,
       mode,
+      gameType: mode === "play" ? gameType : undefined,
     });
     if (roomId) {
       navigate(`/rooms/${roomId}`);
@@ -66,7 +70,15 @@ export function CreateRoomPanel() {
             <span className="text-sm font-medium text-zinc-700">Mode</span>
             <select
               value={mode}
-              onChange={(event) => setMode(event.target.value as RoomMode)}
+              onChange={(event) => {
+                const nextMode = event.target.value as RoomMode;
+                setMode(nextMode);
+                if (nextMode === "play") {
+                  setGameName("Simple Card Demo");
+                  setMapName("Card Table");
+                  setMaxPlayers(2);
+                }
+              }}
               className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
             >
               <option value="edit">Editor</option>
@@ -79,12 +91,29 @@ export function CreateRoomPanel() {
               type="number"
               min={2}
               max={8}
-              value={maxPlayers}
+              value={effectiveMaxPlayers}
+              disabled={mode === "play"}
               onChange={(event) => setMaxPlayers(Number(event.target.value))}
               className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
             />
           </label>
         </div>
+
+        {mode === "play" ? (
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-zinc-700">Game type</span>
+            <select
+              value={gameType}
+              onChange={(event) => setGameType(event.target.value as GameType)}
+              className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
+            >
+              <option value="simpleCardDemo">Simple Card Demo</option>
+            </select>
+            <span className="text-xs text-zinc-500">
+              This demo is fixed to exactly 2 players.
+            </span>
+          </label>
+        ) : null}
 
         <button
           type="submit"

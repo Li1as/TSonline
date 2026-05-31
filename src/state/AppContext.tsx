@@ -9,6 +9,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import type { ChatMessage } from "../types/chat";
+import type { PublicGameState } from "../types/game";
 import type { Player } from "../types/player";
 import type { RealtimeEvent, SnapshotPayload } from "../types/realtime";
 import type { CreateRoomInput, Room } from "../types/room";
@@ -16,6 +17,7 @@ import type { CreateRoomInput, Room } from "../types/room";
 interface AppStateValue {
   currentUser: Player | null;
   rooms: Room[];
+  gameStatesByRoom: Record<string, PublicGameState>;
   isConnected: boolean;
   errorMessage: string | null;
   getRoomById: (roomId: string) => Room | undefined;
@@ -24,6 +26,8 @@ interface AppStateValue {
   createRoom: (input: CreateRoomInput) => Promise<string | null>;
   joinRoom: (roomId: string) => Promise<boolean>;
   sendMessage: (roomId: string, text: string) => Promise<void>;
+  startNewGame: (roomId: string) => Promise<void>;
+  playCard: (roomId: string, cardId: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -47,6 +51,9 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [messagesByRoom, setMessagesByRoom] = useState<Record<string, ChatMessage[]>>(
     {},
   );
+  const [gameStatesByRoom, setGameStatesByRoom] = useState<
+    Record<string, PublicGameState>
+  >({});
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -76,6 +83,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         setRooms(snapshot.rooms);
         setPlayersByRoom(snapshot.playersByRoom);
         setMessagesByRoom(snapshot.messagesByRoom);
+        setGameStatesByRoom(snapshot.gameStatesByRoom);
         return;
       }
 
@@ -180,12 +188,40 @@ export function AppProvider({ children }: PropsWithChildren) {
     [sendRequest],
   );
 
+  const startNewGame = useCallback(
+    async (roomId: string) => {
+      try {
+        await sendRequest("game:new", { roomId });
+        setErrorMessage(null);
+      } catch {
+        return;
+      }
+    },
+    [sendRequest],
+  );
+
+  const playCard = useCallback(
+    async (roomId: string, cardId: string) => {
+      try {
+        await sendRequest("game:action", {
+          roomId,
+          action: { type: "card:play", cardId },
+        });
+        setErrorMessage(null);
+      } catch {
+        return;
+      }
+    },
+    [sendRequest],
+  );
+
   const clearError = useCallback(() => setErrorMessage(null), []);
 
   const value = useMemo(
     () => ({
       currentUser,
       rooms,
+      gameStatesByRoom,
       isConnected,
       errorMessage,
       getRoomById,
@@ -194,11 +230,14 @@ export function AppProvider({ children }: PropsWithChildren) {
       createRoom,
       joinRoom,
       sendMessage,
+      startNewGame,
+      playCard,
       clearError,
     }),
     [
       currentUser,
       rooms,
+      gameStatesByRoom,
       isConnected,
       errorMessage,
       getRoomById,
@@ -207,6 +246,8 @@ export function AppProvider({ children }: PropsWithChildren) {
       createRoom,
       joinRoom,
       sendMessage,
+      startNewGame,
+      playCard,
       clearError,
     ],
   );
