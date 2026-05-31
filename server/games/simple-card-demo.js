@@ -3,6 +3,7 @@ import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definit
 
 const suits = ["S", "H", "D", "C"];
 const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const winningScore = 5;
 
 const rankValues = {
   A: 14,
@@ -59,12 +60,15 @@ export function createEmptySimpleCardState(players = []) {
   return {
     gameType: "simpleCardDemo",
     status: players.length === simpleCardDemoDefinition.requiredPlayers ? "ready" : "not_started",
+    phase: players.length === simpleCardDemoDefinition.requiredPlayers ? "ready" : "not_started",
+    winnerId: null,
     roundId: null,
     roundNumber: 0,
     roundLeaderId: null,
     players,
     currentPlayerId: null,
     currentRoundPlays: [],
+    scoresByPlayerId: createScores(players),
     deck: [],
     handsByPlayerId: {},
     discardPile: [],
@@ -87,12 +91,15 @@ export function startSimpleCardGame(players) {
   return {
     gameType: "simpleCardDemo",
     status: "running",
+    phase: "playing",
+    winnerId: null,
     roundId: randomUUID(),
     roundNumber: 1,
     roundLeaderId: players[0].id,
     players,
     currentPlayerId: players[0].id,
     currentRoundPlays: [],
+    scoresByPlayerId: createScores(players),
     deck: [],
     handsByPlayerId,
     discardPile: [],
@@ -108,6 +115,9 @@ export function startSimpleCardGame(players) {
 export function playSimpleCard(state, playerId, cardId) {
   if (state.status !== "running") {
     throw new Error("Start a new game before playing cards.");
+  }
+  if (state.phase !== "playing") {
+    throw new Error("The game is finished. Start a new game to play again.");
   }
   if (state.currentPlayerId !== playerId) {
     throw new Error("It is not your turn.");
@@ -132,28 +142,45 @@ export function playSimpleCard(state, playerId, cardId) {
     },
   ];
   const isRoundComplete = currentRoundPlays.length === state.players.length;
-  const nextRoundLeaderId = isRoundComplete
-    ? getNextPlayerId(state.players, state.roundLeaderId)
-    : state.roundLeaderId;
+  const roundResult = isRoundComplete ? resolveRound(currentRoundPlays) : null;
+  const nextRoundLeaderId = roundResult?.winnerId ?? state.roundLeaderId;
+  const scoresByPlayerId = roundResult
+    ? {
+        ...state.scoresByPlayerId,
+        [roundResult.winnerId]: (state.scoresByPlayerId[roundResult.winnerId] ?? 0) + 1,
+      }
+    : state.scoresByPlayerId;
+  const winnerId = getGameWinnerId(scoresByPlayerId);
+  const isGameFinished = Boolean(winnerId);
 
   return {
     ...state,
+    phase: isGameFinished ? "finished" : state.phase,
+    winnerId,
     handsByPlayerId: {
       ...state.handsByPlayerId,
       [playerId]: hand.filter((item) => item.id !== cardId),
     },
     discardPile: [...state.discardPile, card],
+    scoresByPlayerId,
+    lastRoundResult: roundResult
+      ? {
+          ...roundResult,
+          roundNumber: state.roundNumber,
+        }
+      : state.lastRoundResult,
     lastErrorsByPlayerId: {
       ...state.lastErrorsByPlayerId,
       [playerId]: "",
     },
-    currentRoundPlays: isRoundComplete ? [] : currentRoundPlays,
-    roundNumber: isRoundComplete ? state.roundNumber + 1 : state.roundNumber,
-    // Minimal demo policy: next round leader alternates between the two players.
+    currentRoundPlays: isRoundComplete || isGameFinished ? [] : currentRoundPlays,
+    roundNumber: isRoundComplete && !isGameFinished ? state.roundNumber + 1 : state.roundNumber,
     roundLeaderId: nextRoundLeaderId,
-    currentPlayerId: isRoundComplete
-      ? nextRoundLeaderId
-      : getNextPlayerId(state.players, playerId),
+    currentPlayerId: isGameFinished
+      ? null
+      : isRoundComplete
+        ? nextRoundLeaderId
+        : getNextPlayerId(state.players, playerId),
     lastAction: {
       type: "card:play",
       playerId,
@@ -162,6 +189,35 @@ export function playSimpleCard(state, playerId, cardId) {
     },
     version: state.version + 1,
   };
+}
+
+function getGameWinnerId(scoresByPlayerId) {
+  return (
+    Object.entries(scoresByPlayerId).find(([, score]) => score >= winningScore)?.[0] ??
+    null
+  );
+}
+
+export function resolveRound(roundPlays) {
+  const [leadPlay, responsePlay] = roundPlays;
+  if (!leadPlay || !responsePlay) {
+    throw new Error("A round requires two played cards.");
+  }
+
+  const didFollowSuit = responsePlay.card.suit === leadPlay.card.suit;
+  const didBeatLead = didFollowSuit && responsePlay.card.value > leadPlay.card.value;
+  const winnerPlay = didBeatLead ? responsePlay : leadPlay;
+
+  return {
+    winnerId: winnerPlay.playerId,
+    leadSuit: leadPlay.card.suit,
+    winningCard: winnerPlay.card,
+    plays: roundPlays,
+  };
+}
+
+function createScores(players) {
+  return Object.fromEntries(players.map((player) => [player.id, 0]));
 }
 
 export function canPlayCard(state, playerId, card) {
@@ -199,6 +255,8 @@ export function toPublicSimpleCardState(state, viewerId) {
   return {
     gameType: "simpleCardDemo",
     status: state.status,
+    phase: state.phase,
+    winnerId: state.winnerId,
     roundId: state.roundId,
     roundNumber: state.roundNumber,
     roundLeaderId: state.roundLeaderId,
@@ -208,9 +266,12 @@ export function toPublicSimpleCardState(state, viewerId) {
       id: player.id,
       name: player.name,
       handCount: state.handsByPlayerId[player.id]?.length ?? 0,
+      score: state.scoresByPlayerId?.[player.id] ?? 0,
     })),
     myHand: state.handsByPlayerId[viewerId] ?? [],
     discardPile: state.discardPile,
+    scoresByPlayerId: state.scoresByPlayerId ?? {},
+    lastRoundResult: state.lastRoundResult,
     lastError: state.lastErrorsByPlayerId?.[viewerId] ?? "",
     lastAction: state.lastAction,
     version: state.version,

@@ -27,9 +27,15 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
   const roundLeader = gameState?.players.find(
     (player) => player.id === gameState.roundLeaderId,
   );
+  const lastRoundWinner = gameState?.players.find(
+    (player) => player.id === gameState.lastRoundResult?.winnerId,
+  );
+  const gameWinner = gameState?.players.find(
+    (player) => player.id === gameState.winnerId,
+  );
   const isMyTurn =
     Boolean(currentUser?.id) &&
-    gameState?.status === "running" &&
+    gameState?.phase === "playing" &&
     gameState.currentPlayerId === currentUser?.id;
   const canPlayCard = (card: CardInstance) => {
     if (!isMyTurn || !gameState) {
@@ -50,7 +56,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
           <p className="text-xs font-medium uppercase text-zinc-500">Simple Card Demo</p>
           <h2 className="mt-1 text-xl font-semibold text-zinc-900">{room.name}</h2>
           <p className="mt-1 text-sm text-zinc-600">
-            {gameState?.status ?? "not_started"} • {players.length}/2 players
+            {gameState?.phase ?? "not_started"} • {players.length}/2 players
           </p>
           <p className="mt-1 text-sm font-medium text-zinc-900">
             Turn: {currentTurnPlayer?.name ?? "Not started"}
@@ -72,6 +78,11 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
         <div className="space-y-4">
+          {gameState?.phase === "finished" ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Game finished. Winner: {gameWinner?.name ?? "Player"}.
+            </div>
+          ) : null}
           <DiscardPile cards={gameState?.discardPile ?? []} />
           <PlayerHand
             cards={gameState?.myHand ?? []}
@@ -103,7 +114,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
                   {player.id === currentUser?.id ? " (You)" : ""}
                 </div>
                 <div className="text-xs text-zinc-500">
-                  {player.handCount} cards
+                  {player.handCount} cards • {player.score} points
                   {player.id === gameState?.currentPlayerId ? " • Current turn" : ""}
                 </div>
               </li>
@@ -112,6 +123,13 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
           {gameState?.lastAction ? (
             <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-600">
               Last action: {gameState.lastAction.type}
+            </div>
+          ) : null}
+          {gameState?.lastRoundResult ? (
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              Round {gameState.lastRoundResult.roundNumber}:{" "}
+              {lastRoundWinner?.name ?? "Player"} won with{" "}
+              {gameState.lastRoundResult.winningCard.name}.
             </div>
           ) : null}
           <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">

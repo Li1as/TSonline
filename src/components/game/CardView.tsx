@@ -10,7 +10,6 @@ const redSuits = new Set(["H", "D"]);
 
 export function CardView({ card, onClick, disabled = false }: CardViewProps) {
   const isRed = redSuits.has(card.suit);
-  const propsText = formatProps(card.props);
 
   return (
     <button
@@ -38,19 +37,9 @@ export function CardView({ card, onClick, disabled = false }: CardViewProps) {
           {card.suit} • {card.rank}
         </div>
         <div className="mt-1 min-h-4 truncate text-xs text-zinc-400">
-          {propsText}
+          {card.description ?? ""}
         </div>
       </div>
     </button>
   );
-}
-
-function formatProps(props?: Record<string, unknown>) {
-  if (!props) {
-    return "";
-  }
-
-  return Object.entries(props)
-    .map(([key, value]) => `${key}:${String(value)}`)
-    .join(" ");
 }

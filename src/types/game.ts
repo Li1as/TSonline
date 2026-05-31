@@ -54,6 +54,8 @@ export interface GameDefinition {
 export interface SimpleCardDemoState {
   gameType: "simpleCardDemo";
   status: "not_started" | "ready" | "running";
+  phase: "not_started" | "ready" | "playing" | "finished";
+  winnerId: string | null;
   roundId: string | null;
   roundNumber: number;
   roundLeaderId: string | null;
@@ -63,10 +65,23 @@ export interface SimpleCardDemoState {
     card: CardInstance;
     playedAt: number;
   }>;
+  scoresByPlayerId: Record<string, number>;
+  lastRoundResult?: {
+    roundNumber: number;
+    winnerId: string;
+    leadSuit: CardSuit;
+    winningCard: CardInstance;
+    plays: Array<{
+      playerId: string;
+      card: CardInstance;
+      playedAt: number;
+    }>;
+  };
   players: Array<{
     id: string;
     name: string;
     handCount: number;
+    score: number;
   }>;
   myHand: CardInstance[];
   discardPile: CardInstance[];
