@@ -241,7 +241,15 @@ export function createStore() {
       throw new Error("Game state is not initialized.");
     }
 
-    gameStatesByRoom[roomId] = applyGameAction(room.gameType, state, session.user.id, action);
+    try {
+      gameStatesByRoom[roomId] = applyGameAction(room.gameType, state, session.user.id, action);
+    } catch (error) {
+      state.lastErrorsByPlayerId = {
+        ...(state.lastErrorsByPlayerId ?? {}),
+        [session.user.id]: error instanceof Error ? error.message : "Invalid move.",
+      };
+      throw error;
+    }
     room.gameStateVersion = gameStatesByRoom[roomId].version;
   }
 

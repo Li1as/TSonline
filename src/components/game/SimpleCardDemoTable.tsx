@@ -1,4 +1,5 @@
 import { useAppState } from "../../state/AppContext";
+import type { CardInstance } from "../../types/game";
 import type { Room } from "../../types/room";
 import { DiscardPile } from "./DiscardPile";
 import { PlayerHand } from "./PlayerHand";
@@ -12,6 +13,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
     currentUser,
     gameStatesByRoom,
     getPlayersForRoom,
+    errorMessage,
     isConnected,
     startNewGame,
     playCard,
@@ -29,6 +31,17 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
     Boolean(currentUser?.id) &&
     gameState?.status === "running" &&
     gameState.currentPlayerId === currentUser?.id;
+  const canPlayCard = (card: CardInstance) => {
+    if (!isMyTurn || !gameState) {
+      return false;
+    }
+    const leadCard = gameState.currentRoundPlays[0]?.card;
+    if (!leadCard) {
+      return true;
+    }
+    const hasLeadSuit = gameState.myHand.some((item) => item.suit === leadCard.suit);
+    return !hasLeadSuit || card.suit === leadCard.suit;
+  };
 
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
@@ -63,8 +76,14 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
           <PlayerHand
             cards={gameState?.myHand ?? []}
             canPlay={isMyTurn}
+            canPlayCard={canPlayCard}
             onPlayCard={(cardId) => playCard(room.id, cardId)}
           />
+          {errorMessage || gameState?.lastError ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {errorMessage || gameState?.lastError}
+            </div>
+          ) : null}
         </div>
 
         <aside className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
@@ -110,7 +129,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
                       key={`${play.playerId}-${play.card.id}`}
                       className="text-sm text-zinc-700"
                     >
-                      {player?.name ?? "Player"} played {play.card.label}
+                      {player?.name ?? "Player"} played {play.card.name}
                     </li>
                   );
                 })}

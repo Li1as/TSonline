@@ -1,8 +1,8 @@
-import type { Card } from "../../types/game";
+import type { CardInstance } from "../../types/game";
 import { CardView } from "./CardView";
 
 interface DiscardPileProps {
-  cards: Card[];
+  cards: CardInstance[];
 }
 
 export function DiscardPile({ cards }: DiscardPileProps) {
@@ -17,7 +17,7 @@ export function DiscardPile({ cards }: DiscardPileProps) {
       {topCards.length ? (
         <div className="flex flex-wrap gap-3">
           {topCards.map((card) => (
-            <CardView key={`${card.id}-${cards.length}`} card={card} />
+            <CardView key={card.instanceId} card={card} />
           ))}
         </div>
       ) : (

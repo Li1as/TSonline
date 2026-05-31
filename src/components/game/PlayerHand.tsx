@@ -1,13 +1,19 @@
-import type { Card } from "../../types/game";
+import type { CardInstance } from "../../types/game";
 import { CardView } from "./CardView";
 
 interface PlayerHandProps {
-  cards: Card[];
+  cards: CardInstance[];
   onPlayCard: (cardId: string) => void;
   canPlay: boolean;
+  canPlayCard: (card: CardInstance) => boolean;
 }
 
-export function PlayerHand({ cards, onPlayCard, canPlay }: PlayerHandProps) {
+export function PlayerHand({
+  cards,
+  onPlayCard,
+  canPlay,
+  canPlayCard,
+}: PlayerHandProps) {
   return (
     <section className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -23,7 +29,7 @@ export function PlayerHand({ cards, onPlayCard, canPlay }: PlayerHandProps) {
             <CardView
               key={card.id}
               card={card}
-              disabled={!canPlay}
+              disabled={!canPlay || !canPlayCard(card)}
               onClick={() => onPlayCard(card.id)}
             />
           ))}

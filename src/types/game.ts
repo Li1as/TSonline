@@ -16,11 +16,20 @@ export type CardRank =
   | "Q"
   | "K";
 
-export interface Card {
-  id: string;
+export interface CardTemplate {
+  templateId: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
   suit: CardSuit;
   rank: CardRank;
-  label: string;
+  value: number;
+  props?: Record<string, unknown>;
+}
+
+export interface CardInstance extends CardTemplate {
+  instanceId: string;
+  id: string;
 }
 
 export interface GameDefinition {
@@ -51,7 +60,7 @@ export interface SimpleCardDemoState {
   currentPlayerId: string | null;
   currentRoundPlays: Array<{
     playerId: string;
-    card: Card;
+    card: CardInstance;
     playedAt: number;
   }>;
   players: Array<{
@@ -59,8 +68,9 @@ export interface SimpleCardDemoState {
     name: string;
     handCount: number;
   }>;
-  myHand: Card[];
-  discardPile: Card[];
+  myHand: CardInstance[];
+  discardPile: CardInstance[];
+  lastError: string;
   lastAction?: {
     type: "game:new" | "card:play";
     playerId?: string;

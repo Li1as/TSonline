@@ -4,15 +4,46 @@ import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definit
 const suits = ["S", "H", "D", "C"];
 const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
 
-function createDeck() {
+const rankValues = {
+  A: 14,
+  K: 13,
+  Q: 12,
+  J: 11,
+  "10": 10,
+  "9": 9,
+  "8": 8,
+  "7": 7,
+  "6": 6,
+  "5": 5,
+  "4": 4,
+  "3": 3,
+  "2": 2,
+};
+
+function createStandardTemplates() {
   return suits.flatMap((suit) =>
     ranks.map((rank) => ({
-      id: `${suit}-${rank}`,
+      templateId: `standard-${suit}-${rank}`,
+      name: `${rank}${suit}`,
+      description: `Standard ${rank} of ${suit}`,
+      imageUrl: "",
       suit,
       rank,
-      label: `${rank}${suit}`,
+      value: rankValues[rank],
+      props: {},
     })),
   );
+}
+
+function createDeck() {
+  return createStandardTemplates().map((template) => {
+    const instanceId = randomUUID();
+    return {
+      ...template,
+      instanceId,
+      id: instanceId,
+    };
+  });
 }
 
 function shuffle(cards) {
@@ -37,6 +68,7 @@ export function createEmptySimpleCardState(players = []) {
     deck: [],
     handsByPlayerId: {},
     discardPile: [],
+    lastErrorsByPlayerId: {},
     version: 0,
   };
 }
@@ -64,6 +96,7 @@ export function startSimpleCardGame(players) {
     deck: [],
     handsByPlayerId,
     discardPile: [],
+    lastErrorsByPlayerId: {},
     lastAction: {
       type: "game:new",
       at: Date.now(),
@@ -84,6 +117,10 @@ export function playSimpleCard(state, playerId, cardId) {
   const card = hand.find((item) => item.id === cardId);
   if (!card) {
     throw new Error("Card is not in your hand.");
+  }
+  const legality = canPlayCard(state, playerId, card);
+  if (!legality.ok) {
+    throw new Error(legality.reason);
   }
 
   const currentRoundPlays = [
@@ -106,6 +143,10 @@ export function playSimpleCard(state, playerId, cardId) {
       [playerId]: hand.filter((item) => item.id !== cardId),
     },
     discardPile: [...state.discardPile, card],
+    lastErrorsByPlayerId: {
+      ...state.lastErrorsByPlayerId,
+      [playerId]: "",
+    },
     currentRoundPlays: isRoundComplete ? [] : currentRoundPlays,
     roundNumber: isRoundComplete ? state.roundNumber + 1 : state.roundNumber,
     // Minimal demo policy: next round leader alternates between the two players.
@@ -116,11 +157,34 @@ export function playSimpleCard(state, playerId, cardId) {
     lastAction: {
       type: "card:play",
       playerId,
-      cardId,
+      cardId: card.instanceId,
       at: Date.now(),
     },
     version: state.version + 1,
   };
+}
+
+export function canPlayCard(state, playerId, card) {
+  if (state.currentPlayerId !== playerId) {
+    return { ok: false, reason: "It is not your turn." };
+  }
+
+  const firstPlay = state.currentRoundPlays[0];
+  if (!firstPlay) {
+    return { ok: true };
+  }
+
+  const hand = state.handsByPlayerId[playerId] ?? [];
+  const requiredSuit = firstPlay.card.suit;
+  const hasRequiredSuit = hand.some((item) => item.suit === requiredSuit);
+  if (hasRequiredSuit && card.suit !== requiredSuit) {
+    return {
+      ok: false,
+      reason: `You must follow suit with ${requiredSuit}.`,
+    };
+  }
+
+  return { ok: true };
 }
 
 function getNextPlayerId(players, currentPlayerId) {
@@ -147,6 +211,7 @@ export function toPublicSimpleCardState(state, viewerId) {
     })),
     myHand: state.handsByPlayerId[viewerId] ?? [],
     discardPile: state.discardPile,
+    lastError: state.lastErrorsByPlayerId?.[viewerId] ?? "",
     lastAction: state.lastAction,
     version: state.version,
   };
