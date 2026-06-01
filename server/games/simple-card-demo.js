@@ -1,57 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definition.js";
 
-const suits = ["S", "H", "D", "C"];
-const ranks = [
-  "A",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
-];
-const winningScore = 5;
-
-const rankValues = {
-  A: 14,
-  K: 13,
-  Q: 12,
-  J: 11,
-  10: 10,
-  9: 9,
-  8: 8,
-  7: 7,
-  6: 6,
-  5: 5,
-  4: 4,
-  3: 3,
-  2: 2,
-};
-
-function createStandardTemplates() {
-  return suits.flatMap((suit) =>
-    ranks.map((rank) => ({
-      templateId: `standard-${suit}-${rank}`,
-      name: `${rank}${suit}`,
-      description: `Standard ${rank} of ${suit}`,
-      imageUrl: "",
-      suit,
-      rank,
-      value: rankValues[rank],
-      props: {},
-    })),
-  );
-}
-
 function createDeck() {
-  return createStandardTemplates().map((template) => {
+  return simpleCardDemoDefinition.cardTemplates.map((template) => {
     const instanceId = randomUUID();
     return {
       ...template,
@@ -77,11 +28,11 @@ export function createEmptySimpleCardState(players = []) {
   return {
     gameType: "simpleCardDemo",
     status:
-      players.length === simpleCardDemoDefinition.requiredPlayers
+      players.length === simpleCardDemoDefinition.players.required
         ? "ready"
         : "not_started",
     phase:
-      players.length === simpleCardDemoDefinition.requiredPlayers
+      players.length === simpleCardDemoDefinition.players.required
         ? "ready"
         : "not_started",
     winnerId: null,
@@ -101,7 +52,7 @@ export function createEmptySimpleCardState(players = []) {
 }
 
 export function startSimpleCardGame(players) {
-  if (players.length !== simpleCardDemoDefinition.requiredPlayers) {
+  if (players.length !== simpleCardDemoDefinition.players.required) {
     throw new Error("Simple Card Demo requires exactly 2 players.");
   }
 
@@ -222,7 +173,7 @@ export function playSimpleCard(state, playerId, cardId) {
 function getGameWinnerId(scoresByPlayerId) {
   return (
     Object.entries(scoresByPlayerId).find(
-      ([, score]) => score >= winningScore,
+      ([, score]) => score >= simpleCardDemoDefinition.config.winScore,
     )?.[0] ?? null
   );
 }

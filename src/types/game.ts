@@ -35,20 +35,35 @@ export interface CardInstance extends CardTemplate {
 export interface GameDefinition {
   type: GameType;
   title: string;
-  minPlayers: number;
-  maxPlayers: number;
-  requiredPlayers: number;
+  version: number;
+  players: {
+    min: number;
+    max: number;
+    required: number;
+  };
+  config: {
+    winScore: number;
+  };
   zones: Array<{
     id: string;
     label: string;
-    visibility: "owner" | "public";
+    owner: "game" | "player";
+    visibility: "hidden" | "owner" | "public";
+    accepts: string[];
   }>;
   actions: Array<{
     type: string;
     label: string;
+    description?: string;
     source?: string;
     target?: string;
   }>;
+  cardTemplates: CardTemplate[];
+  ui: {
+    cardDisplayFields: string[];
+    showScoreboard: boolean;
+    showRoundInfo: boolean;
+  };
 }
 
 export interface SimpleCardDemoState {
