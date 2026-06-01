@@ -25,15 +25,52 @@ export const simpleCardDemoDefinition = {
     min: 2,
     max: 2,
     required: 2,
+    attributes: {
+      score: {
+        initial: 0,
+      },
+    },
   },
   config: {
     winScore: 5,
   },
-  victory: {
-    condition: "scoreAtLeast",
-    scoreSource: "vars.scoresByPlayerId",
-    target: "anyPlayer",
-    valueFrom: "config.winScore",
+  victory: [
+    {
+      condition: "playerAttributeAtLeast",
+      target: "anyPlayer",
+      attribute: "score",
+      valueFrom: "config.winScore",
+      winner: "matchedPlayer",
+    },
+  ],
+  setup: {
+    initialPhase: "playing",
+    deck: {
+      from: "cardTemplates",
+      shuffle: true,
+    },
+    deal: {
+      strategy: "evenlyToPlayers",
+      to: "hand:<playerId>",
+    },
+    emptyVars: {
+      roundNumber: 0,
+      currentPlayerId: null,
+      roundLeaderId: null,
+      scoresByPlayerId: "$zeroScoresByPlayerId",
+      playerAttributesByPlayerId: "$initialPlayerAttributes",
+      winnerId: null,
+      lastRoundResult: undefined,
+    },
+    vars: {
+      roundNumber: 1,
+      currentPlayerId: "$players.0.id",
+      roundLeaderId: "$players.0.id",
+      scoresByPlayerId: "$zeroScoresByPlayerId",
+      playerAttributesByPlayerId: "$initialPlayerAttributes",
+      winnerId: null,
+      lastRoundResult: undefined,
+    },
   },
   zones: [
     {
@@ -79,7 +116,7 @@ export const simpleCardDemoDefinition = {
       target: "roundPlay",
       conditions: [
         { type: "currentPlayerIsActor" },
-        { type: "followSuitIfPossible" },
+        { type: "followSuitIfPossible", zone: "roundPlay" },
       ],
       effects: [
         {
@@ -105,10 +142,19 @@ export const simpleCardDemoDefinition = {
           type: "resolveTrick",
           zone: "roundPlay",
           resultKey: "roundResult",
+          rule: "higherValueInLeadSuit",
+          suitField: "suit",
+          valueField: "value",
         },
         {
           type: "addScore",
           playerId: "$context.roundResult.winnerId",
+          amount: 1,
+        },
+        {
+          type: "modifyPlayerAttribute",
+          target: "$context.roundResult.winnerId",
+          attribute: "score",
           amount: 1,
         },
         {

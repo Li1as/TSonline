@@ -1,3 +1,4 @@
+import { noRulesMinimalDefinition } from "./definitions/no-rules-minimal.definition.js";
 import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definition.js";
 import {
   createEmptySimpleCardState,
@@ -6,38 +7,80 @@ import {
   toPublicSimpleCardState,
 } from "./simple-card-demo.js";
 
-const definitions = {
-  simpleCardDemo: simpleCardDemoDefinition,
+const registeredDefinitions = [
+  simpleCardDemoDefinition,
+  noRulesMinimalDefinition,
+];
+
+const definitionsByType = Object.fromEntries(
+  registeredDefinitions.map((definition) => [definition.type, definition]),
+);
+
+const gameAdapters = {
+  simpleCardDemo: {
+    createEmptyState: createEmptySimpleCardState,
+    start: startSimpleCardGame,
+    applyAction: (state, playerId, action) => {
+      if (action.type === "card:play") {
+        return playSimpleCard(state, playerId, action.cardId);
+      }
+      throw new Error(`Unsupported game action: ${action.type}`);
+    },
+    toPublicState: toPublicSimpleCardState,
+  },
 };
 
 export function getGameDefinition(gameType) {
-  return definitions[gameType];
+  return definitionsByType[gameType];
+}
+
+export function listGameDefinitions() {
+  return registeredDefinitions;
+}
+
+export function listPlayableGameDefinitions() {
+  return registeredDefinitions.filter((definition) => gameAdapters[definition.type]);
+}
+
+export function isPlayableGameType(gameType) {
+  return Boolean(gameAdapters[gameType]);
+}
+
+export function listGameDefinitionSummaries() {
+  return registeredDefinitions.map((definition) => ({
+    type: definition.type,
+    title: definition.title,
+    version: definition.version,
+    players: definition.players,
+    playable: isPlayableGameType(definition.type),
+  }));
 }
 
 export function createEmptyGameState(gameType, players = []) {
-  if (gameType === "simpleCardDemo") {
-    return createEmptySimpleCardState(players);
-  }
-  throw new Error(`Unsupported game type: ${gameType}`);
+  return getGameAdapter(gameType).createEmptyState(players);
 }
 
 export function startGame(gameType, players) {
-  if (gameType === "simpleCardDemo") {
-    return startSimpleCardGame(players);
-  }
-  throw new Error(`Unsupported game type: ${gameType}`);
+  return getGameAdapter(gameType).start(players);
 }
 
 export function applyGameAction(gameType, state, playerId, action) {
-  if (gameType === "simpleCardDemo" && action.type === "card:play") {
-    return playSimpleCard(state, playerId, action.cardId);
-  }
-  throw new Error(`Unsupported game action: ${action.type}`);
+  return getGameAdapter(gameType).applyAction(state, playerId, action);
 }
 
 export function toPublicGameState(gameType, state, viewerId) {
-  if (gameType === "simpleCardDemo") {
-    return toPublicSimpleCardState(state, viewerId);
+  return getGameAdapter(gameType).toPublicState(state, viewerId);
+}
+
+function getGameAdapter(gameType) {
+  const adapter = gameAdapters[gameType];
+  if (!adapter) {
+    const definition = getGameDefinition(gameType);
+    if (definition) {
+      throw new Error(`Game type is defined but has no runtime adapter: ${gameType}`);
+    }
+    throw new Error(`Unsupported game type: ${gameType}`);
   }
-  throw new Error(`Unsupported game type: ${gameType}`);
+
+  return adapter;
 }

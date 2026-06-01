@@ -12,11 +12,12 @@ import type { ChatMessage } from "../types/chat";
 import type { PublicGameState } from "../types/game";
 import type { Player } from "../types/player";
 import type { RealtimeEvent, SnapshotPayload } from "../types/realtime";
-import type { CreateRoomInput, Room } from "../types/room";
+import type { CreateRoomInput, GameDefinitionSummary, Room } from "../types/room";
 
 interface AppStateValue {
   currentUser: Player | null;
   rooms: Room[];
+  gameDefinitions: GameDefinitionSummary[];
   gameStatesByRoom: Record<string, PublicGameState>;
   isConnected: boolean;
   errorMessage: string | null;
@@ -47,6 +48,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   );
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [gameDefinitions, setGameDefinitions] = useState<GameDefinitionSummary[]>([]);
   const [playersByRoom, setPlayersByRoom] = useState<Record<string, Player[]>>({});
   const [messagesByRoom, setMessagesByRoom] = useState<Record<string, ChatMessage[]>>(
     {},
@@ -84,6 +86,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         setPlayersByRoom(snapshot.playersByRoom);
         setMessagesByRoom(snapshot.messagesByRoom);
         setGameStatesByRoom(snapshot.gameStatesByRoom);
+        setGameDefinitions(snapshot.gameDefinitions ?? []);
         return;
       }
 
@@ -221,6 +224,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     () => ({
       currentUser,
       rooms,
+      gameDefinitions,
       gameStatesByRoom,
       isConnected,
       errorMessage,
@@ -236,7 +240,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     }),
     [
       currentUser,
-      rooms,
+     rooms,
+      gameDefinitions,
       gameStatesByRoom,
       isConnected,
       errorMessage,

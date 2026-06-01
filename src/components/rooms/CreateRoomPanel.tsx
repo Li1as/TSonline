@@ -6,7 +6,7 @@ import { PanelCard } from "../ui/PanelCard";
 
 export function CreateRoomPanel() {
   const navigate = useNavigate();
-  const { createRoom, isConnected } = useAppState();
+  const { createRoom, gameDefinitions, isConnected } = useAppState();
   const [name, setName] = useState("New Playtest Room");
   const [gameName, setGameName] = useState("Prototype Game");
   const [mapName, setMapName] = useState("Starter Board");
@@ -14,7 +14,26 @@ export function CreateRoomPanel() {
   const [mode, setMode] = useState<RoomMode>("edit");
   const [gameType, setGameType] = useState<GameType>("simpleCardDemo");
 
-  const effectiveMaxPlayers = mode === "play" ? 2 : maxPlayers;
+  const playableDefinitions = gameDefinitions.filter((definition) => definition.playable);
+  const visibleDefinitions = gameDefinitions.length
+    ? gameDefinitions
+    : [
+        {
+          type: "simpleCardDemo" as const,
+          title: "Simple Card Demo",
+          version: 1,
+          players: { min: 2, max: 2, required: 2 },
+          playable: true,
+        },
+      ];
+  const selectedDefinition = visibleDefinitions.find(
+    (definition) => definition.type === gameType,
+  );
+  const selectedPlayable = selectedDefinition?.playable ?? false;
+  const effectiveMaxPlayers =
+    mode === "play" ? selectedDefinition?.players.max ?? 2 : maxPlayers;
+  const canSubmit =
+    isConnected && (mode !== "play" || Boolean(selectedDefinition && selectedPlayable));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,9 +93,11 @@ export function CreateRoomPanel() {
                 const nextMode = event.target.value as RoomMode;
                 setMode(nextMode);
                 if (nextMode === "play") {
-                  setGameName("Simple Card Demo");
+                  const nextDefinition = playableDefinitions[0] ?? visibleDefinitions[0];
+                  setGameType(nextDefinition.type);
+                  setGameName(nextDefinition.title);
                   setMapName("Card Table");
-                  setMaxPlayers(2);
+                  setMaxPlayers(nextDefinition.players.max);
                 }
               }}
               className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
@@ -104,21 +125,38 @@ export function CreateRoomPanel() {
             <span className="text-sm font-medium text-zinc-700">Game type</span>
             <select
               value={gameType}
-              onChange={(event) => setGameType(event.target.value as GameType)}
+              onChange={(event) => {
+                const nextGameType = event.target.value as GameType;
+                const nextDefinition = visibleDefinitions.find(
+                  (definition) => definition.type === nextGameType,
+                );
+                setGameType(nextGameType);
+                if (nextDefinition) {
+                  setGameName(nextDefinition.title);
+                  setMaxPlayers(nextDefinition.players.max);
+                }
+              }}
               className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
             >
-              <option value="simpleCardDemo">Simple Card Demo</option>
+              {visibleDefinitions.map((definition) => (
+                <option key={definition.type} value={definition.type}>
+                  {definition.title}
+                  {definition.playable ? "" : " (definition only)"}
+                </option>
+              ))}
             </select>
             <span className="text-xs text-zinc-500">
-              This demo is fixed to exactly 2 players.
+              {selectedPlayable
+                ? `Requires ${selectedDefinition?.players.required ?? 0} player(s).`
+                : "This definition is exposed for renderer testing but cannot create a room yet."}
             </span>
           </label>
         ) : null}
 
         <button
           type="submit"
-          disabled={!isConnected}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white"
+          disabled={!canSubmit}
+          className="w-full rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
         >
           Create and Enter Room
         </button>

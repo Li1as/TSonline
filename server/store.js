@@ -3,6 +3,8 @@ import {
   applyGameAction,
   createEmptyGameState,
   getGameDefinition,
+  isPlayableGameType,
+  listGameDefinitionSummaries,
   startGame,
   toPublicGameState,
 } from "./games/registry.js";
@@ -114,6 +116,7 @@ export function createStore() {
       playersByRoom,
       messagesByRoom,
       gameStatesByRoom: getPublicGameStates(clientId),
+      gameDefinitions: listGameDefinitionSummaries(),
     };
   }
 
@@ -125,6 +128,9 @@ export function createStore() {
     const definition = input.mode === "play" ? getGameDefinition(input.gameType) : null;
     if (input.mode === "play" && !definition) {
       throw new Error("Play rooms require a supported game type.");
+    }
+    if (input.mode === "play" && !isPlayableGameType(input.gameType)) {
+      throw new Error("This game type is defined but is not playable yet.");
     }
     const roomId = `RM-${2000 + rooms.size + 1}`;
     const room = {

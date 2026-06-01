@@ -25,6 +25,10 @@ export interface CardTemplate {
   rank: CardRank;
   value: number;
   props?: Record<string, unknown>;
+  effects?: {
+    onPlay?: GameEffect[];
+    onRoundResolve?: GameEffect[];
+  };
 }
 
 export interface CardInstance extends CardTemplate {
@@ -42,16 +46,24 @@ export interface GameDefinition {
     min: number;
     max: number;
     required: number;
+    attributes?: Record<string, { initial: number; min?: number; max?: number }>;
   };
   config: {
-    winScore: number;
+    winScore?: number;
   };
-  victory?: {
-    condition: "scoreAtLeast";
-    scoreSource: "vars.scoresByPlayerId";
-    target: "anyPlayer";
-    value?: number;
-    valueFrom?: "config.winScore";
+  victory?: VictoryCondition | VictoryCondition[];
+  setup?: {
+    initialPhase: "playing";
+    deck?: {
+      from: "cardTemplates";
+      shuffle: boolean;
+    };
+    deal?: {
+      strategy: "evenlyToPlayers";
+      to: string;
+    };
+    emptyVars?: Record<string, unknown>;
+    vars?: Record<string, unknown>;
   };
   zones: Array<{
     id: string;
@@ -67,70 +79,23 @@ export interface GameDefinition {
     source?: string;
     target?: string;
     conditions?: Array<{
-      type: "currentPlayerIsActor" | "followSuitIfPossible";
+      type: "currentPlayerIsActor" | "followSuitIfPossible" | "phaseIs" | "varEquals";
+      zone?: string;
+      suitField?: string;
+      phase?: string;
+      path?: string;
+      value?: unknown;
     }>;
-    effects?: Array<
-      | {
-          type: "moveCard";
-          from: string;
-          to: string;
-          cardId: string;
-          recordPlayedMetadata?: boolean;
-        }
-      | {
-          type: "moveAllCards";
-          from: string;
-          to: string;
-        }
-      | {
-          type: "setVar";
-          key: string;
-          value: unknown;
-        }
-      | {
-          type: "addScore";
-          playerId: string;
-          amount: number;
-        }
-      | {
-          type: "setCurrentPlayer";
-          playerId: string | null;
-        }
-    >;
+    effects?: GameEffect[];
   }>;
   triggers?: Array<{
-    event: "CARD_PLAYED";
+    event: "CARD_PLAYED" | "ROUND_RESOLVED";
     when: {
-      type: "zoneCountEquals";
+      type: "zoneCountEquals" | "zoneCountAtLeast" | "zoneCountAtMost";
       zone: string;
       count: number;
     };
-    effects: Array<
-      | {
-          type: "resolveTrick";
-          zone: string;
-          resultKey: string;
-        }
-      | {
-          type: "moveAllCards";
-          from: string;
-          to: string;
-        }
-      | {
-          type: "setVar";
-          key: string;
-          value: unknown;
-        }
-      | {
-          type: "addScore";
-          playerId: string;
-          amount: number;
-        }
-      | {
-          type: "setCurrentPlayer";
-          playerId: string | null;
-        }
-    >;
+    effects: GameEffect[];
   }>;
   cardTemplates: CardTemplate[];
   ui: {
@@ -139,6 +104,87 @@ export interface GameDefinition {
     showRoundInfo: boolean;
   };
 }
+
+export type GameEffect =
+  | {
+      type: "moveCard";
+      from: string;
+      to: string;
+      cardId: string;
+      recordPlayedMetadata?: boolean;
+    }
+  | {
+      type: "moveAllCards";
+      from: string;
+      to: string;
+      shuffleAfter?: boolean;
+    }
+  | {
+      type: "drawCards";
+      from: string;
+      to: string;
+      count: number | string;
+    }
+  | {
+      type: "shuffleZone";
+      zone: string;
+    }
+  | {
+      type: "setVar";
+      key: string;
+      value: unknown;
+    }
+  | {
+      type: "addScore";
+      playerId: string;
+      amount: number;
+    }
+  | {
+      type: "modifyPlayerAttribute";
+      target: string;
+      attribute: string;
+      amount: number | string;
+    }
+  | {
+      type: "setCurrentPlayer";
+      playerId: string | null;
+    }
+  | {
+      type: "setPhase";
+      phase: string;
+    }
+  | {
+      type: "resolveTrick";
+      zone: string;
+      resultKey: string;
+      rule?: "higherValueInLeadSuit";
+      suitField?: string;
+      valueField?: string;
+    };
+
+export type VictoryCondition =
+  | {
+      condition: "scoreAtLeast";
+      scoreSource: "vars.scoresByPlayerId";
+      target: "anyPlayer";
+      value?: number;
+      valueFrom?: "config.winScore";
+    }
+  | {
+      condition: "playerAttributeAtLeast" | "playerAttributeAtMost";
+      target: "anyPlayer";
+      attribute: string;
+      value?: number;
+      valueFrom?: "config.winScore";
+      winner: "matchedPlayer" | "opponentOfMatchedPlayer";
+    }
+  | {
+      condition: "zoneCountAtLeast" | "zoneCountAtMost";
+      zone: string;
+      owner?: "anyPlayer";
+      count: number;
+      winner: "matchedPlayer" | "opponentOfMatchedPlayer";
+    };
 
 export interface SimpleCardDemoState {
   gameType: "simpleCardDemo";
