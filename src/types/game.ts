@@ -30,6 +30,8 @@ export interface CardTemplate {
 export interface CardInstance extends CardTemplate {
   instanceId: string;
   id: string;
+  playedByPlayerId?: string;
+  playedAt?: number;
 }
 
 export interface GameDefinition {
@@ -44,6 +46,13 @@ export interface GameDefinition {
   config: {
     winScore: number;
   };
+  victory?: {
+    condition: "scoreAtLeast";
+    scoreSource: "vars.scoresByPlayerId";
+    target: "anyPlayer";
+    value?: number;
+    valueFrom?: "config.winScore";
+  };
   zones: Array<{
     id: string;
     label: string;
@@ -57,6 +66,71 @@ export interface GameDefinition {
     description?: string;
     source?: string;
     target?: string;
+    conditions?: Array<{
+      type: "currentPlayerIsActor" | "followSuitIfPossible";
+    }>;
+    effects?: Array<
+      | {
+          type: "moveCard";
+          from: string;
+          to: string;
+          cardId: string;
+          recordPlayedMetadata?: boolean;
+        }
+      | {
+          type: "moveAllCards";
+          from: string;
+          to: string;
+        }
+      | {
+          type: "setVar";
+          key: string;
+          value: unknown;
+        }
+      | {
+          type: "addScore";
+          playerId: string;
+          amount: number;
+        }
+      | {
+          type: "setCurrentPlayer";
+          playerId: string | null;
+        }
+    >;
+  }>;
+  triggers?: Array<{
+    event: "CARD_PLAYED";
+    when: {
+      type: "zoneCountEquals";
+      zone: string;
+      count: number;
+    };
+    effects: Array<
+      | {
+          type: "resolveTrick";
+          zone: string;
+          resultKey: string;
+        }
+      | {
+          type: "moveAllCards";
+          from: string;
+          to: string;
+        }
+      | {
+          type: "setVar";
+          key: string;
+          value: unknown;
+        }
+      | {
+          type: "addScore";
+          playerId: string;
+          amount: number;
+        }
+      | {
+          type: "setCurrentPlayer";
+          playerId: string | null;
+        }
+    >;
   }>;
   cardTemplates: CardTemplate[];
   ui: {
@@ -70,8 +144,27 @@ export interface SimpleCardDemoState {
   gameType: "simpleCardDemo";
   status: "not_started" | "ready" | "running";
   phase: "not_started" | "ready" | "playing" | "finished";
-  winnerId: string | null;
   roundId: string | null;
+  zones: Record<string, CardInstance[]>;
+  vars: {
+    roundNumber: number;
+    currentPlayerId: string | null;
+    roundLeaderId: string | null;
+    scoresByPlayerId: Record<string, number>;
+    winnerId: string | null;
+    lastRoundResult?: {
+      roundNumber: number;
+      winnerId: string;
+      leadSuit: CardSuit;
+      winningCard: CardInstance;
+      plays: Array<{
+        playerId: string;
+        card: CardInstance;
+        playedAt: number;
+      }>;
+    };
+  };
+  winnerId: string | null;
   roundNumber: number;
   roundLeaderId: string | null;
   currentPlayerId: string | null;

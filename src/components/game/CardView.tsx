@@ -10,6 +10,7 @@ const redSuits = new Set(["H", "D"]);
 
 export function CardView({ card, onClick, disabled = false }: CardViewProps) {
   const isRed = redSuits.has(card.suit);
+  const propsText = formatCardProps(card.props);
 
   return (
     <button
@@ -48,7 +49,21 @@ export function CardView({ card, onClick, disabled = false }: CardViewProps) {
         >
           {card.description ?? ""}
         </div>
+        <div
+          className="min-h-4 w-full min-w-0 truncate text-xs leading-4 text-zinc-400"
+          title={propsText}
+        >
+          {propsText}
+        </div>
       </div>
     </button>
   );
+}
+
+function formatCardProps(props: CardInstance["props"]) {
+  if (!props || Object.keys(props).length === 0) {
+    return "";
+  }
+
+  return JSON.stringify(props);
 }

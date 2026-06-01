@@ -29,6 +29,12 @@ export const simpleCardDemoDefinition = {
   config: {
     winScore: 5,
   },
+  victory: {
+    condition: "scoreAtLeast",
+    scoreSource: "vars.scoresByPlayerId",
+    target: "anyPlayer",
+    valueFrom: "config.winScore",
+  },
   zones: [
     {
       id: "deck",
@@ -71,6 +77,65 @@ export const simpleCardDemoDefinition = {
       description: "Move one card from the current player's hand into the round.",
       source: "hand",
       target: "roundPlay",
+      conditions: [
+        { type: "currentPlayerIsActor" },
+        { type: "followSuitIfPossible" },
+      ],
+      effects: [
+        {
+          type: "moveCard",
+          from: "hand:<actorId>",
+          to: "roundPlay",
+          cardId: "$payload.cardId",
+          recordPlayedMetadata: true,
+        },
+      ],
+    },
+  ],
+  triggers: [
+    {
+      event: "CARD_PLAYED",
+      when: {
+        type: "zoneCountEquals",
+        zone: "roundPlay",
+        count: 2,
+      },
+      effects: [
+        {
+          type: "resolveTrick",
+          zone: "roundPlay",
+          resultKey: "roundResult",
+        },
+        {
+          type: "addScore",
+          playerId: "$context.roundResult.winnerId",
+          amount: 1,
+        },
+        {
+          type: "moveAllCards",
+          from: "roundPlay",
+          to: "discard",
+        },
+        {
+          type: "setVar",
+          key: "lastRoundResult",
+          value: "$context.roundResult",
+        },
+        {
+          type: "setVar",
+          key: "roundNumber",
+          value: "$context.nextRoundNumber",
+        },
+        {
+          type: "setVar",
+          key: "roundLeaderId",
+          value: "$context.roundResult.winnerId",
+        },
+        {
+          type: "setCurrentPlayer",
+          playerId: "$context.roundResult.winnerId",
+        },
+      ],
     },
   ],
   cardTemplates: suits.flatMap((suit) =>

@@ -3,6 +3,8 @@ import type { CardInstance } from "../../types/game";
 import type { Room } from "../../types/room";
 import { DiscardPile } from "./DiscardPile";
 import { PlayerHand } from "./PlayerHand";
+import { RoundInfo } from "./RoundInfo";
+import { ScoreBoard } from "./ScoreBoard";
 
 interface SimpleCardDemoTableProps {
   room: Room;
@@ -26,9 +28,6 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
   );
   const roundLeader = gameState?.players.find(
     (player) => player.id === gameState.roundLeaderId,
-  );
-  const lastRoundWinner = gameState?.players.find(
-    (player) => player.id === gameState.lastRoundResult?.winnerId,
   );
   const gameWinner = gameState?.players.find(
     (player) => player.id === gameState.winnerId,
@@ -98,64 +97,20 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
         </div>
 
         <aside className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Players</h3>
-          <ul className="mt-3 space-y-2">
-            {(gameState?.players ?? players.map((player) => ({
-              id: player.id,
-              name: player.name,
-              handCount: 0,
-            }))).map((player) => (
-              <li
-                key={player.id}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
-              >
-                <div className="font-medium text-zinc-900">
-                  {player.name}
-                  {player.id === currentUser?.id ? " (You)" : ""}
-                </div>
-                <div className="text-xs text-zinc-500">
-                  {player.handCount} cards • {player.score} points
-                  {player.id === gameState?.currentPlayerId ? " • Current turn" : ""}
-                </div>
-              </li>
-            ))}
-          </ul>
-          {gameState?.lastAction ? (
-            <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-600">
-              Last action: {gameState.lastAction.type}
-            </div>
-          ) : null}
-          {gameState?.lastRoundResult ? (
-            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Round {gameState.lastRoundResult.roundNumber}:{" "}
-              {lastRoundWinner?.name ?? "Player"} won with{" "}
-              {gameState.lastRoundResult.winningCard.name}.
-            </div>
-          ) : null}
-          <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-3">
-            <h4 className="text-xs font-semibold uppercase text-zinc-500">
-              Current Round Plays
-            </h4>
-            {gameState?.currentRoundPlays.length ? (
-              <ul className="mt-2 space-y-2">
-                {gameState.currentRoundPlays.map((play) => {
-                  const player = gameState.players.find(
-                    (item) => item.id === play.playerId,
-                  );
-                  return (
-                    <li
-                      key={`${play.playerId}-${play.card.id}`}
-                      className="text-sm text-zinc-700"
-                    >
-                      {player?.name ?? "Player"} played {play.card.name}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-zinc-500">No cards played this round.</p>
-            )}
-          </div>
+          <ScoreBoard
+            players={
+              gameState?.players ??
+              players.map((player) => ({
+                id: player.id,
+                name: player.name,
+                handCount: 0,
+                score: 0,
+              }))
+            }
+            currentUserId={currentUser?.id}
+            currentPlayerId={gameState?.currentPlayerId}
+          />
+          <RoundInfo gameState={gameState} />
         </aside>
       </div>
     </section>
