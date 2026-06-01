@@ -44,6 +44,15 @@ export function evaluateCondition(definition, state, action, condition, context 
       : { ok: false, reason: "Action condition was not met." };
   }
 
+  if (condition.type === "playerAttributeBelow") {
+    const playerId = action.actorId;
+    const currentValue =
+      state.vars.playerAttributesByPlayerId?.[playerId]?.[condition.attribute] ?? 0;
+    return currentValue < condition.value
+      ? { ok: true }
+      : { ok: false, reason: `${condition.attribute} is already full.` };
+  }
+
   return { ok: false, reason: `Unsupported condition: ${condition.type}` };
 }
 

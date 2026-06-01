@@ -25,6 +25,12 @@ export interface CardTemplate {
   rank: CardRank;
   value: number;
   props?: Record<string, unknown>;
+  playConditions?: Array<{
+    type: "playerAttributeBelow";
+    target: "actor";
+    attribute: string;
+    value: number;
+  }>;
   effects?: {
     onPlay?: GameEffect[];
     onRoundResolve?: GameEffect[];
@@ -59,11 +65,18 @@ export interface GameDefinition {
       shuffle: boolean;
     };
     deal?: {
-      strategy: "evenlyToPlayers";
+      strategy: "evenlyToPlayers" | "fixedCountToPlayers";
+      from?: string;
       to: string;
+      count?: number;
     };
     emptyVars?: Record<string, unknown>;
     vars?: Record<string, unknown>;
+  };
+  turn?: {
+    minPlays: number;
+    maxPlays: number;
+    allowPass: boolean;
   };
   zones: Array<{
     id: string;
@@ -79,11 +92,18 @@ export interface GameDefinition {
     source?: string;
     target?: string;
     conditions?: Array<{
-      type: "currentPlayerIsActor" | "followSuitIfPossible" | "phaseIs" | "varEquals";
+      type:
+        | "currentPlayerIsActor"
+        | "followSuitIfPossible"
+        | "phaseIs"
+        | "varEquals"
+        | "playerAttributeBelow";
       zone?: string;
       suitField?: string;
       phase?: string;
       path?: string;
+      target?: string;
+      attribute?: string;
       value?: unknown;
     }>;
     effects?: GameEffect[];
@@ -236,6 +256,7 @@ export interface SimpleCardDemoState {
     name: string;
     handCount: number;
     score: number;
+    attributes?: Record<string, unknown>;
   }>;
   myHand: CardInstance[];
   discardPile: CardInstance[];
@@ -249,4 +270,31 @@ export interface SimpleCardDemoState {
   version: number;
 }
 
-export type PublicGameState = SimpleCardDemoState;
+export interface GenericGameState {
+  gameType: string;
+  status: "not_started" | "ready" | "running";
+  phase: "not_started" | "ready" | "playing" | "finished";
+  winnerId: string | null;
+  roundId: string | null;
+  zones: Record<string, CardInstance[]>;
+  vars: {
+    currentPlayerId?: string | null;
+    winnerId?: string | null;
+    [key: string]: unknown;
+  };
+  players: Array<{
+    id: string;
+    name: string;
+    attributes?: Record<string, unknown>;
+  }>;
+  lastError: string;
+  lastAction?: {
+    type: string;
+    playerId?: string;
+    cardId?: string;
+    at: number;
+  };
+  version: number;
+}
+
+export type PublicGameState = SimpleCardDemoState | GenericGameState;

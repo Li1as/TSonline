@@ -136,9 +136,14 @@ export function resolveZoneSelector(zoneId, state, action, context = {}) {
   return zoneId
     .replace("<actor>", action.actorId)
     .replace("<actorId>", action.actorId)
+    .replace("<currentPlayer>", state.vars.currentPlayerId ?? "")
     .replace("<opponent>", getOpponentId(state, action.actorId) ?? "")
     .replace("<roundWinner>", context.roundResult?.winnerId ?? "")
     .replace("<roundLoser>", getOpponentId(state, context.roundResult?.winnerId) ?? "");
+}
+
+export function replacePlayerToken(value, playerId) {
+  return value.replace("<playerId>", playerId);
 }
 
 export function resolveEffectValue(value, action, context) {

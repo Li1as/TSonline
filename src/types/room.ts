@@ -1,6 +1,6 @@
 export type RoomMode = "play" | "edit";
 export type RoomStatus = "waiting" | "running";
-export type GameType = "simpleCardDemo" | "noRulesMinimal";
+export type GameType = "simpleCardDemo" | "attributeDuel" | "noRulesMinimal";
 
 export interface Room {
   id: string;
@@ -25,6 +25,11 @@ export interface GameDefinitionSummary {
     min: number;
     max: number;
     required: number;
+  };
+  turn?: {
+    minPlays: number;
+    maxPlays: number;
+    allowPass: boolean;
   };
   playable: boolean;
 }

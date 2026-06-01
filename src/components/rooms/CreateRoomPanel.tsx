@@ -23,6 +23,7 @@ export function CreateRoomPanel() {
           title: "Simple Card Demo",
           version: 1,
           players: { min: 2, max: 2, required: 2 },
+          turn: { minPlays: 1, maxPlays: 1, allowPass: false },
           playable: true,
         },
       ];

@@ -27,9 +27,15 @@ export function startGameFromDefinition(definition, players) {
   const zones = createZonesFromDefinition(definition, players);
   const deck = setup.deck?.from === "cardTemplates" ? createDeck(definition) : [];
   const cardsToDeal = setup.deck?.shuffle ? shuffle(deck) : deck;
+  if (setup.deck?.zone) {
+    zones[setup.deck.zone] = cardsToDeal;
+  }
 
   if (setup.deal?.strategy === "evenlyToPlayers") {
-    dealEvenlyToPlayers(zones, cardsToDeal, players, setup.deal.to);
+    dealEvenlyToPlayers(zones, cardsToDeal, players, setup.deal);
+  }
+  if (setup.deal?.strategy === "fixedCountToPlayers") {
+    dealFixedCountToPlayers(zones, players, setup.deal);
   }
 
   return {
@@ -80,16 +86,33 @@ function shuffle(cards) {
   return shuffleCards(cards);
 }
 
-function dealEvenlyToPlayers(zones, cards, players, targetZonePattern) {
+function dealEvenlyToPlayers(zones, cards, players, deal) {
   if (!players.length) {
     return;
   }
 
   cards.forEach((card, index) => {
     const player = players[index % players.length];
-    const zoneId = targetZonePattern.replace("<playerId>", player.id);
+    const zoneId = deal.to.replace("<playerId>", player.id);
     zones[zoneId] = [...(zones[zoneId] ?? []), card];
   });
+  if (deal.from) {
+    zones[deal.from] = [];
+  }
+}
+
+function dealFixedCountToPlayers(zones, players, deal) {
+  const sourceZone = zones[deal.from] ?? [];
+  let nextIndex = 0;
+
+  for (const player of players) {
+    const zoneId = deal.to.replace("<playerId>", player.id);
+    const cards = sourceZone.slice(nextIndex, nextIndex + deal.count);
+    zones[zoneId] = [...(zones[zoneId] ?? []), ...cards];
+    nextIndex += deal.count;
+  }
+
+  zones[deal.from] = sourceZone.slice(nextIndex);
 }
 
 function resolveSetupVars(varsConfig, players, definition) {

@@ -72,6 +72,11 @@ export const simpleCardDemoDefinition = {
       lastRoundResult: undefined,
     },
   },
+  turn: {
+    minPlays: 1,
+    maxPlays: 1,
+    allowPass: false,
+  },
   zones: [
     {
       id: "deck",

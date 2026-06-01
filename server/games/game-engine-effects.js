@@ -142,6 +142,12 @@ export function applyEffect(definition, state, action, effect, context = {}, hoo
     const amount = resolveEffectValue(effect.amount, action, context);
     const attributesByPlayerId = state.vars.playerAttributesByPlayerId ?? {};
     const currentAttributes = attributesByPlayerId[playerId] ?? {};
+    const currentValue = currentAttributes[effect.attribute] ?? 0;
+    const nextValue = clampPlayerAttribute(
+      definition,
+      effect.attribute,
+      currentValue + amount,
+    );
     return {
       state: {
         ...state,
@@ -151,7 +157,7 @@ export function applyEffect(definition, state, action, effect, context = {}, hoo
             ...attributesByPlayerId,
             [playerId]: {
               ...currentAttributes,
-              [effect.attribute]: (currentAttributes[effect.attribute] ?? 0) + amount,
+              [effect.attribute]: nextValue,
             },
           },
         },
@@ -198,6 +204,15 @@ export function applyEffect(definition, state, action, effect, context = {}, hoo
   }
 
   throw new Error(`Unsupported effect: ${effect.type}`);
+}
+
+function clampPlayerAttribute(definition, attribute, value) {
+  const config = definition.players.attributes?.[attribute];
+  if (!config) {
+    return value;
+  }
+
+  return Math.min(config.max ?? value, Math.max(config.min ?? value, value));
 }
 
 function resolveTrick(roundPlays, effect, hooks) {

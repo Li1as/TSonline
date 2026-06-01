@@ -1,5 +1,5 @@
 import { useAppState } from "../../state/AppContext";
-import type { CardInstance } from "../../types/game";
+import type { CardInstance, SimpleCardDemoState } from "../../types/game";
 import type { Room } from "../../types/room";
 import { DiscardPile } from "./DiscardPile";
 import { PlayerHand } from "./PlayerHand";
@@ -20,7 +20,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
     startNewGame,
     playCard,
   } = useAppState();
-  const gameState = gameStatesByRoom[room.id];
+  const gameState = gameStatesByRoom[room.id] as SimpleCardDemoState | undefined;
   const players = getPlayersForRoom(room.id);
   const canStart = isConnected && players.length === 2;
   const currentTurnPlayer = gameState?.players.find(

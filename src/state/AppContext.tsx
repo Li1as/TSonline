@@ -28,6 +28,7 @@ interface AppStateValue {
   joinRoom: (roomId: string) => Promise<boolean>;
   sendMessage: (roomId: string, text: string) => Promise<void>;
   startNewGame: (roomId: string) => Promise<void>;
+  sendGameAction: (roomId: string, action: Record<string, unknown>) => Promise<void>;
   playCard: (roomId: string, cardId: string) => Promise<void>;
   clearError: () => void;
 }
@@ -203,19 +204,23 @@ export function AppProvider({ children }: PropsWithChildren) {
     [sendRequest],
   );
 
-  const playCard = useCallback(
-    async (roomId: string, cardId: string) => {
+  const sendGameAction = useCallback(
+    async (roomId: string, action: Record<string, unknown>) => {
       try {
-        await sendRequest("game:action", {
-          roomId,
-          action: { type: "card:play", cardId },
-        });
+        await sendRequest("game:action", { roomId, action });
         setErrorMessage(null);
       } catch {
         return;
       }
     },
     [sendRequest],
+  );
+
+  const playCard = useCallback(
+    async (roomId: string, cardId: string) => {
+      await sendGameAction(roomId, { type: "card:play", cardId });
+    },
+    [sendGameAction],
   );
 
   const clearError = useCallback(() => setErrorMessage(null), []);
@@ -235,6 +240,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       joinRoom,
       sendMessage,
       startNewGame,
+      sendGameAction,
       playCard,
       clearError,
     }),
@@ -252,6 +258,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       joinRoom,
       sendMessage,
       startNewGame,
+      sendGameAction,
       playCard,
       clearError,
     ],

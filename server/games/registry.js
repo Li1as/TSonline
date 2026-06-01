@@ -1,14 +1,12 @@
+import { attributeDuelDefinition } from "./definitions/attribute-duel.definition.js";
 import { noRulesMinimalDefinition } from "./definitions/no-rules-minimal.definition.js";
 import { simpleCardDemoDefinition } from "./definitions/simple-card-demo.definition.js";
-import {
-  createEmptySimpleCardState,
-  playSimpleCard,
-  startSimpleCardGame,
-  toPublicSimpleCardState,
-} from "./simple-card-demo.js";
+import { createGenericGameAdapter } from "./generic-game-adapter.js";
+import { toPublicSimpleCardState } from "./simple-card-demo.js";
 
 const registeredDefinitions = [
   simpleCardDemoDefinition,
+  attributeDuelDefinition,
   noRulesMinimalDefinition,
 ];
 
@@ -17,17 +15,10 @@ const definitionsByType = Object.fromEntries(
 );
 
 const gameAdapters = {
-  simpleCardDemo: {
-    createEmptyState: createEmptySimpleCardState,
-    start: startSimpleCardGame,
-    applyAction: (state, playerId, action) => {
-      if (action.type === "card:play") {
-        return playSimpleCard(state, playerId, action.cardId);
-      }
-      throw new Error(`Unsupported game action: ${action.type}`);
-    },
+  simpleCardDemo: createGenericGameAdapter(simpleCardDemoDefinition, {
     toPublicState: toPublicSimpleCardState,
-  },
+  }),
+  attributeDuel: createGenericGameAdapter(attributeDuelDefinition),
 };
 
 export function getGameDefinition(gameType) {
@@ -52,6 +43,7 @@ export function listGameDefinitionSummaries() {
     title: definition.title,
     version: definition.version,
     players: definition.players,
+    turn: definition.turn,
     playable: isPlayableGameType(definition.type),
   }));
 }
