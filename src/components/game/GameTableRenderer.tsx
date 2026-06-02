@@ -20,7 +20,9 @@ export function GameTableRenderer({ room, gameState }: GameTableRendererProps) {
   const handZoneId = currentUser?.id ? `hand:${currentUser.id}` : "";
   const handCards = handZoneId ? zones[handZoneId] ?? [] : [];
   const zoneEntries = Object.entries(zones).filter(([zoneId]) => zoneId !== handZoneId);
+  const isRoomInvalid = room.status === "invalid";
   const isMyTurn =
+    !isRoomInvalid &&
     Boolean(currentUser?.id) &&
     gameState?.phase === "playing" &&
     gameState.vars.currentPlayerId === currentUser?.id;
@@ -42,12 +44,18 @@ export function GameTableRenderer({ room, gameState }: GameTableRendererProps) {
               Winner: {winner.name}
             </p>
           ) : null}
+          {isRoomInvalid ? (
+            <p className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {room.invalidReason ?? "This room uses an outdated game definition."}
+            </p>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button
             type="button"
+            disabled={isRoomInvalid}
             onClick={() => startNewGame(room.id)}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
             New Game
           </button>

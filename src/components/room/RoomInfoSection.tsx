@@ -20,8 +20,8 @@ export function RoomInfoSection({ room }: RoomInfoSectionProps) {
               tone={room.mode === "edit" ? "accent" : "success"}
             />
             <StatusBadge
-              label={room.status === "running" ? "Running" : "Waiting"}
-              tone="neutral"
+              label={getRoomStatusLabel(room.status)}
+              tone={room.status === "invalid" ? "danger" : "neutral"}
             />
           </div>
           <div>
@@ -32,6 +32,11 @@ export function RoomInfoSection({ room }: RoomInfoSectionProps) {
               Static room detail view with room info, player list, board placeholder,
               and local chat state.
             </p>
+            {room.status === "invalid" ? (
+              <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+                {room.invalidReason ?? "This room uses an outdated game definition."}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -47,8 +52,12 @@ export function RoomInfoSection({ room }: RoomInfoSectionProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-zinc-500">Game</dt>
-            <dd className="mt-1 font-medium text-zinc-900">{room.gameName}</dd>
+            <dt className="text-zinc-500">
+              {room.mode === "edit" ? "Editor" : "Game"}
+            </dt>
+            <dd className="mt-1 font-medium text-zinc-900">
+              {room.mode === "edit" ? getEditorLabel(room.editorType) : room.gameName}
+            </dd>
           </div>
           <div>
             <dt className="text-zinc-500">Map</dt>
@@ -58,4 +67,21 @@ export function RoomInfoSection({ room }: RoomInfoSectionProps) {
       </div>
     </section>
   );
+}
+
+function getRoomStatusLabel(status: Room["status"]) {
+  if (status === "running") {
+    return "Running";
+  }
+  if (status === "invalid") {
+    return "Invalid";
+  }
+  return "Waiting";
+}
+
+function getEditorLabel(editorType: Room["editorType"]) {
+  if (editorType === "definitionEditor") {
+    return "Definition Editor";
+  }
+  return "Placeholder Showcase";
 }

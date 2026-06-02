@@ -10,8 +10,14 @@ export function RoomInfoPanel() {
       description="Static summary for the current room and other available spaces."
       action={
         <StatusBadge
-          label={currentRoom.status === "running" ? "Running" : "Waiting"}
-          tone={currentRoom.status === "running" ? "success" : "accent"}
+          label={getRoomStatusLabel(currentRoom.status)}
+          tone={
+            currentRoom.status === "invalid"
+              ? "danger"
+              : currentRoom.status === "running"
+                ? "success"
+                : "accent"
+          }
         />
       }
     >
@@ -40,4 +46,14 @@ export function RoomInfoPanel() {
       </div>
     </PanelCard>
   );
+}
+
+function getRoomStatusLabel(status: "waiting" | "running" | "invalid") {
+  if (status === "running") {
+    return "Running";
+  }
+  if (status === "invalid") {
+    return "Invalid";
+  }
+  return "Waiting";
 }

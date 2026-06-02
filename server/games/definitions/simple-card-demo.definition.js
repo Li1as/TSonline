@@ -1,20 +1,34 @@
 const suits = ["S", "H", "D", "C"];
-const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const ranks = [
+  "A",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "J",
+  "Q",
+  "K",
+];
 
 const rankValues = {
   A: 14,
   K: 13,
   Q: 12,
   J: 11,
-  "10": 10,
-  "9": 9,
-  "8": 8,
-  "7": 7,
-  "6": 6,
-  "5": 5,
-  "4": 4,
-  "3": 3,
-  "2": 2,
+  10: 10,
+  9: 9,
+  8: 8,
+  7: 7,
+  6: 6,
+  5: 5,
+  4: 4,
+  3: 3,
+  2: 2,
 };
 
 export const simpleCardDemoDefinition = {
@@ -111,12 +125,14 @@ export const simpleCardDemoDefinition = {
     {
       type: "game:new",
       label: "New Game",
-      description: "Shuffle the configured deck and deal it evenly to both players.",
+      description:
+        "Shuffle the configured deck and deal it evenly to both players.",
     },
     {
       type: "card:play",
       label: "Play Card",
-      description: "Move one card from the current player's hand into the round.",
+      description:
+        "Move one card from the current player's hand into the round.",
       source: "hand",
       target: "roundPlay",
       conditions: [
@@ -202,7 +218,14 @@ export const simpleCardDemoDefinition = {
     })),
   ),
   ui: {
-    cardDisplayFields: ["name", "suit", "rank", "value", "description", "imageUrl"],
+    cardDisplayFields: [
+      "name",
+      "suit",
+      "rank",
+      "value",
+      "description",
+      "imageUrl",
+    ],
     showScoreboard: true,
     showRoundInfo: true,
   },

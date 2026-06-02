@@ -1,6 +1,6 @@
-import { RoomTablePlaceholder } from "../room/RoomTablePlaceholder";
 import type { Room } from "../../types/room";
 import { useAppState } from "../../state/AppContext";
+import { EditorTable } from "../editor/EditorTable";
 import { GameTableRenderer } from "./GameTableRenderer";
 import { SimpleCardDemoTable } from "./SimpleCardDemoTable";
 
@@ -10,6 +10,10 @@ interface GameTableProps {
 
 export function GameTable({ room }: GameTableProps) {
   const { gameStatesByRoom } = useAppState();
+
+  if (room.mode === "edit") {
+    return <EditorTable room={room} />;
+  }
 
   if (room.mode === "play" && room.gameType === "simpleCardDemo") {
     return <SimpleCardDemoTable room={room} />;
@@ -24,5 +28,5 @@ export function GameTable({ room }: GameTableProps) {
     );
   }
 
-  return <RoomTablePlaceholder room={room} />;
+  return <EditorTable room={room} />;
 }

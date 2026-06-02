@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppState } from "../../state/AppContext";
-import type { GameType, RoomMode } from "../../types/room";
+import type { EditorType, GameType, RoomMode } from "../../types/room";
 import { PanelCard } from "../ui/PanelCard";
 
 export function CreateRoomPanel() {
@@ -13,6 +13,7 @@ export function CreateRoomPanel() {
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [mode, setMode] = useState<RoomMode>("edit");
   const [gameType, setGameType] = useState<GameType>("simpleCardDemo");
+  const [editorType, setEditorType] = useState<EditorType>("showcase");
 
   const playableDefinitions = gameDefinitions.filter((definition) => definition.playable);
   const visibleDefinitions = gameDefinitions.length
@@ -45,6 +46,7 @@ export function CreateRoomPanel() {
       maxPlayers: effectiveMaxPlayers,
       mode,
       gameType: mode === "play" ? gameType : undefined,
+      editorType: mode === "edit" ? editorType : undefined,
     });
     if (roomId) {
       navigate(`/rooms/${roomId}`);
@@ -99,6 +101,9 @@ export function CreateRoomPanel() {
                   setGameName(nextDefinition.title);
                   setMapName("Card Table");
                   setMaxPlayers(nextDefinition.players.max);
+                } else {
+                  setGameName("Prototype Game");
+                  setMapName("Editor Canvas");
                 }
               }}
               className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
@@ -150,6 +155,23 @@ export function CreateRoomPanel() {
               {selectedPlayable
                 ? `Requires ${selectedDefinition?.players.required ?? 0} player(s).`
                 : "This definition is exposed for renderer testing but cannot create a room yet."}
+            </span>
+          </label>
+        ) : null}
+
+        {mode === "edit" ? (
+          <label className="block space-y-2">
+            <span className="text-sm font-medium text-zinc-700">Editor type</span>
+            <select
+              value={editorType}
+              onChange={(event) => setEditorType(event.target.value as EditorType)}
+              className="w-full rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-900"
+            >
+              <option value="showcase">Placeholder showcase</option>
+              <option value="definitionEditor">Definition text editor</option>
+            </select>
+            <span className="text-xs text-zinc-500">
+              The text editor keeps a local draft for now; backend upload is reserved.
             </span>
           </label>
         ) : null}

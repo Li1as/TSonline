@@ -14,6 +14,7 @@ const initialRooms = [
     id: "RM-2048",
     name: "Moon Harbor Playtest",
     mode: "edit",
+    editorType: "showcase",
     status: "waiting",
     playerCount: 4,
     maxPlayers: 6,
@@ -38,6 +39,7 @@ const initialRooms = [
     id: "RM-1821",
     name: "Prototype Sandbox",
     mode: "edit",
+    editorType: "definitionEditor",
     status: "waiting",
     playerCount: 2,
     maxPlayers: 8,
@@ -78,6 +80,7 @@ const initialMessagesByRoom = {
 };
 
 const seatLabels = ["North", "East", "South", "West", "Observer", "Support"];
+const editorTypes = new Set(["showcase", "definitionEditor"]);
 
 function createPlayer(name, color, seat, isHost = false, isOnline = true) {
   return { id: randomUUID(), name, color, seat, isHost, isOnline };
@@ -132,6 +135,9 @@ export function createStore() {
     if (input.mode === "play" && !isPlayableGameType(input.gameType)) {
       throw new Error("This game type is defined but is not playable yet.");
     }
+    if (input.mode === "edit" && input.editorType && !editorTypes.has(input.editorType)) {
+      throw new Error("Unsupported editor type.");
+    }
     const roomId = `RM-${2000 + rooms.size + 1}`;
     const room = {
       id: roomId,
@@ -142,6 +148,7 @@ export function createStore() {
       minPlayers: definition?.players.min,
       requiredPlayers: definition?.players.required,
       gameType: input.mode === "play" ? input.gameType : undefined,
+      editorType: input.mode === "edit" ? input.editorType ?? "showcase" : undefined,
       gameStateVersion: 0,
       mode: input.mode,
       status: "waiting",
@@ -174,6 +181,9 @@ export function createStore() {
     }
     if (session.roomId === roomId) {
       return roomId;
+    }
+    if (room.status === "invalid") {
+      throw new Error(room.invalidReason ?? "This room uses an outdated game definition.");
     }
     if (room.playerCount >= room.maxPlayers) {
       throw new Error("Room is full.");
@@ -215,6 +225,9 @@ export function createStore() {
     if (!room.gameType) {
       throw new Error("This room does not have a game type.");
     }
+    if (room.status === "invalid") {
+      throw new Error(room.invalidReason ?? "This room uses an outdated game definition.");
+    }
 
     const members = playersByRoom[roomId] ?? [];
     if (members.length !== room.requiredPlayers) {
@@ -241,6 +254,9 @@ export function createStore() {
     }
     if (!room.gameType) {
       throw new Error("This room does not have a game type.");
+    }
+    if (room.status === "invalid") {
+      throw new Error(room.invalidReason ?? "This room uses an outdated game definition.");
     }
     const state = gameStatesByRoom[roomId];
     if (!state) {
@@ -305,7 +321,7 @@ export function createStore() {
   function syncRoomGamePlayers(roomId) {
     const room = rooms.get(roomId);
     const state = gameStatesByRoom[roomId];
-    if (!room?.gameType || !state || state.status === "running") {
+    if (!room?.gameType || !state || room.status === "invalid" || state.status === "running") {
       return;
     }
     gameStatesByRoom[roomId] = createEmptyGameState(room.gameType, playersByRoom[roomId] ?? []);
@@ -327,6 +343,29 @@ export function createStore() {
     return result;
   }
 
+  function invalidateGameRoomsForTypes(gameTypes, reason) {
+    const affectedTypes = new Set(gameTypes);
+    const affectedRoomIds = [];
+
+    for (const [roomId, room] of rooms) {
+      if (!room.gameType || !affectedTypes.has(room.gameType)) {
+        continue;
+      }
+
+      room.status = "invalid";
+      room.invalidReason = reason;
+      room.gameStateVersion = (room.gameStateVersion ?? 0) + 1;
+      delete gameStatesByRoom[roomId];
+      affectedRoomIds.push(roomId);
+      messagesByRoom[roomId] = [
+        ...(messagesByRoom[roomId] ?? []),
+        createMessage("System", reason, "system"),
+      ];
+    }
+
+    return affectedRoomIds;
+  }
+
   function requireSession(clientId) {
     const session = sessions.get(clientId);
     if (!session) {
@@ -343,6 +382,7 @@ export function createStore() {
     sendChat,
     startNewGame,
     handleGameAction,
+    invalidateGameRoomsForTypes,
     disconnect,
   };
 }

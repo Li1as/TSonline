@@ -1,14 +1,20 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { watch } from "node:fs";
 import { WebSocketServer } from "ws";
 import { createRandomName } from "./names.js";
 import { createStore } from "./store.js";
+import { initializeGameRegistry, reloadGameRegistry } from "./games/registry.js";
 
 const port = Number(process.env.WS_PORT ?? 8787);
 const host = process.env.WS_HOST ?? "127.0.0.1";
+
+await initializeGameRegistry();
+
 const server = createServer();
 const wss = new WebSocketServer({ server });
 const store = createStore();
+const definitionsDirectory = new URL("./games/definitions/", import.meta.url);
 
 function send(socket, type, payload, requestId) {
   socket.send(JSON.stringify({ type, payload, requestId }));
@@ -22,6 +28,31 @@ function broadcastSnapshot() {
     send(client, "state:snapshot", store.getSnapshot(client.clientId));
   }
 }
+
+let registryReloadTimer = null;
+
+const definitionsWatcher = watch(definitionsDirectory, () => {
+  clearTimeout(registryReloadTimer);
+  registryReloadTimer = setTimeout(async () => {
+    try {
+      const { changedTypes } = await reloadGameRegistry();
+      if (changedTypes.length) {
+        const affectedRooms = store.invalidateGameRoomsForTypes(
+          changedTypes,
+          "Game definition changed. Please recreate this room.",
+        );
+        console.log(
+          `Reloaded game definitions. Changed: ${changedTypes.join(", ")}. Invalidated rooms: ${affectedRooms.length}.`,
+        );
+      } else {
+        console.log("Reloaded game definitions. No definition content changed.");
+      }
+      broadcastSnapshot();
+    } catch (error) {
+      console.error("Failed to reload game definitions.", error);
+    }
+  }, 150);
+});
 
 wss.on("connection", (socket) => {
   const clientId = randomUUID();
@@ -95,4 +126,14 @@ wss.on("connection", (socket) => {
 
 server.listen(port, host, () => {
   console.log(`WebSocket server listening on http://${host}:${port}`);
+});
+
+process.on("SIGINT", () => {
+  definitionsWatcher.close();
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGTERM", () => {
+  definitionsWatcher.close();
+  server.close(() => process.exit(0));
 });

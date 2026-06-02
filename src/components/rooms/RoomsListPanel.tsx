@@ -35,12 +35,14 @@ export function RoomsListPanel() {
                     tone={room.mode === "edit" ? "accent" : "success"}
                   />
                   <StatusBadge
-                    label={room.status === "running" ? "Running" : "Waiting"}
-                    tone="neutral"
+                    label={getRoomStatusLabel(room.status)}
+                    tone={room.status === "invalid" ? "danger" : "neutral"}
                   />
                 </div>
                 <p className="text-sm leading-6 text-zinc-600">
-                  {room.gameName} on {room.mapName}
+                  {room.status === "invalid"
+                    ? room.invalidReason ?? "This room uses an outdated game definition."
+                    : `${room.gameName} on ${room.mapName}`}
                 </p>
                 <div className="flex flex-wrap gap-4 text-sm text-zinc-500">
                   <span>{room.id}</span>
@@ -60,9 +62,9 @@ export function RoomsListPanel() {
                 </button>
                 <button
                   type="button"
-                  disabled={!isConnected}
+                  disabled={!isConnected || room.status === "invalid"}
                   onClick={() => handleJoin(room.id)}
-                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white"
+                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
                 >
                   Join
                 </button>
@@ -73,4 +75,14 @@ export function RoomsListPanel() {
       </div>
     </PanelCard>
   );
+}
+
+function getRoomStatusLabel(status: "waiting" | "running" | "invalid") {
+  if (status === "running") {
+    return "Running";
+  }
+  if (status === "invalid") {
+    return "Invalid";
+  }
+  return "Waiting";
 }

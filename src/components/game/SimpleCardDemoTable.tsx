@@ -22,7 +22,8 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
   } = useAppState();
   const gameState = gameStatesByRoom[room.id] as SimpleCardDemoState | undefined;
   const players = getPlayersForRoom(room.id);
-  const canStart = isConnected && players.length === 2;
+  const isRoomInvalid = room.status === "invalid";
+  const canStart = !isRoomInvalid && isConnected && players.length === 2;
   const currentTurnPlayer = gameState?.players.find(
     (player) => player.id === gameState.currentPlayerId,
   );
@@ -33,6 +34,7 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
     (player) => player.id === gameState.winnerId,
   );
   const isMyTurn =
+    !isRoomInvalid &&
     Boolean(currentUser?.id) &&
     gameState?.phase === "playing" &&
     gameState.currentPlayerId === currentUser?.id;
@@ -64,6 +66,11 @@ export function SimpleCardDemoTable({ room }: SimpleCardDemoTableProps) {
             Round {gameState?.roundNumber ?? 0} • Leader:{" "}
             {roundLeader?.name ?? "Not started"}
           </p>
+          {isRoomInvalid ? (
+            <p className="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {room.invalidReason ?? "This room uses an outdated game definition."}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
