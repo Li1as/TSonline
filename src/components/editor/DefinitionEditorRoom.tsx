@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAppState } from "../../state/AppContext";
 import type { Room } from "../../types/room";
 import { StatusBadge } from "../ui/StatusBadge";
 
@@ -7,11 +8,18 @@ interface DefinitionEditorRoomProps {
 }
 
 export function DefinitionEditorRoom({ room }: DefinitionEditorRoomProps) {
+  const { isConnected, submitDefinitionDraft } = useAppState();
   const [draft, setDraft] = useState("");
   const [statusText, setStatusText] = useState("Local draft only.");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit() {
-    setStatusText("Submit endpoint reserved. Draft was not sent to the server.");
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    const fileName = await submitDefinitionDraft(room.id, draft);
+    setIsSubmitting(false);
+    setStatusText(
+      fileName ? `Saved to ${fileName}.` : "Submit failed. Check server connection.",
+    );
   }
 
   return (
@@ -43,10 +51,11 @@ export function DefinitionEditorRoom({ room }: DefinitionEditorRoomProps) {
           <p className="text-sm text-zinc-500">{statusText}</p>
           <button
             type="button"
+            disabled={!isConnected || isSubmitting}
             onClick={handleSubmit}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
-            Send to Server
+            {isSubmitting ? "Sending..." : "Send to Server"}
           </button>
         </div>
       </div>

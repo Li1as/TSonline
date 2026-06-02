@@ -5,13 +5,36 @@ import { WebSocketServer } from "ws";
 import { createRandomName } from "./names.js";
 import { createStore } from "./store.js";
 import { initializeGameRegistry, reloadGameRegistry } from "./games/registry.js";
+import { createStandalonePackage } from "./standalone-package.js";
 
 const port = Number(process.env.WS_PORT ?? 8787);
 const host = process.env.WS_HOST ?? "127.0.0.1";
 
 await initializeGameRegistry();
 
-const server = createServer();
+const server = createServer(async (request, response) => {
+  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? host}`);
+  const match = url.pathname.match(/^\/downloads\/standalone\/(.+)\.zip$/);
+  if (!match) {
+    response.writeHead(404);
+    response.end("Not found.");
+    return;
+  }
+
+  try {
+    const gameType = decodeURIComponent(match[1]);
+    const archive = await createStandalonePackage(gameType);
+    response.writeHead(200, {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${archive.fileName}"`,
+      "Content-Length": archive.content.length,
+    });
+    response.end(archive.content);
+  } catch (error) {
+    response.writeHead(404);
+    response.end(error instanceof Error ? error.message : "Download failed.");
+  }
+});
 const wss = new WebSocketServer({ server });
 const store = createStore();
 const definitionsDirectory = new URL("./games/definitions/", import.meta.url);
@@ -73,7 +96,7 @@ wss.on("connection", (socket) => {
   send(socket, "session:ready", { currentUser: session.user });
   send(socket, "state:snapshot", store.getSnapshot(clientId));
 
-  socket.on("message", (raw) => {
+  socket.on("message", async (raw) => {
     let requestId;
     try {
       const message = JSON.parse(String(raw));
@@ -95,6 +118,21 @@ wss.on("connection", (socket) => {
         store.sendChat(clientId, payload.roomId, payload.text.trim());
         send(socket, "chat:send_result", { ok: true }, requestId);
         broadcastSnapshot();
+        return;
+      }
+      if (type === "editor:definition:submit") {
+        const result = await store.submitEditorDefinition(
+          clientId,
+          payload.roomId,
+          payload.content,
+        );
+        send(socket, "editor:definition:submit_result", result, requestId);
+        broadcastSnapshot();
+        return;
+      }
+      if (type === "game:definition:source") {
+        const result = await store.getGameDefinitionSource(payload.gameType);
+        send(socket, "game:definition:source_result", result, requestId);
         return;
       }
       if (type === "game:new") {

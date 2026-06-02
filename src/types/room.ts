@@ -35,6 +35,7 @@ export interface GameDefinitionSummary {
     allowPass: boolean;
   };
   playable: boolean;
+  sourceFile?: string;
 }
 
 export interface CreateRoomInput {

@@ -14,7 +14,7 @@ export async function loadGameDefinitions({ cacheKey = "" } = {}) {
     const module = await import(importUrl);
     for (const value of Object.values(module)) {
       if (isGameDefinition(value)) {
-        definitions.push(value);
+        definitions.push({ ...value, sourceFile: file });
       }
     }
   }

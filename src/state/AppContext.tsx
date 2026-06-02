@@ -24,9 +24,11 @@ interface AppStateValue {
   getRoomById: (roomId: string) => Room | undefined;
   getPlayersForRoom: (roomId: string) => Player[];
   getMessagesForRoom: (roomId: string) => ChatMessage[];
+  getGameDefinitionSource: (gameType: string) => Promise<GameDefinitionSource | null>;
   createRoom: (input: CreateRoomInput) => Promise<string | null>;
   joinRoom: (roomId: string) => Promise<boolean>;
   sendMessage: (roomId: string, text: string) => Promise<void>;
+  submitDefinitionDraft: (roomId: string, content: string) => Promise<string | null>;
   startNewGame: (roomId: string) => Promise<void>;
   sendGameAction: (roomId: string, action: Record<string, unknown>) => Promise<void>;
   playCard: (roomId: string, cardId: string) => Promise<void>;
@@ -35,6 +37,13 @@ interface AppStateValue {
 
 const AppStateContext = createContext<AppStateValue | null>(null);
 const socketUrl = `ws://${window.location.hostname}:8787`;
+
+export interface GameDefinitionSource {
+  type: string;
+  title: string;
+  sourceFile: string;
+  content: string;
+}
 
 export function AppProvider({ children }: PropsWithChildren) {
   const socketRef = useRef<WebSocket | null>(null);
@@ -192,6 +201,37 @@ export function AppProvider({ children }: PropsWithChildren) {
     [sendRequest],
   );
 
+  const getGameDefinitionSource = useCallback(
+    async (gameType: string) => {
+      try {
+        const result = (await sendRequest("game:definition:source", {
+          gameType,
+        })) as GameDefinitionSource;
+        setErrorMessage(null);
+        return result;
+      } catch {
+        return null;
+      }
+    },
+    [sendRequest],
+  );
+
+  const submitDefinitionDraft = useCallback(
+    async (roomId: string, content: string) => {
+      try {
+        const result = (await sendRequest("editor:definition:submit", {
+          roomId,
+          content,
+        })) as { fileName: string };
+        setErrorMessage(null);
+        return result.fileName;
+      } catch {
+        return null;
+      }
+    },
+    [sendRequest],
+  );
+
   const startNewGame = useCallback(
     async (roomId: string) => {
       try {
@@ -236,9 +276,11 @@ export function AppProvider({ children }: PropsWithChildren) {
       getRoomById,
       getPlayersForRoom,
       getMessagesForRoom,
+      getGameDefinitionSource,
       createRoom,
       joinRoom,
       sendMessage,
+      submitDefinitionDraft,
       startNewGame,
       sendGameAction,
       playCard,
@@ -254,9 +296,11 @@ export function AppProvider({ children }: PropsWithChildren) {
       getRoomById,
       getPlayersForRoom,
       getMessagesForRoom,
+      getGameDefinitionSource,
       createRoom,
       joinRoom,
       sendMessage,
+      submitDefinitionDraft,
       startNewGame,
       sendGameAction,
       playCard,

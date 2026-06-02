@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 import {
   applyGameAction,
   createEmptyGameState,
@@ -81,6 +82,7 @@ const initialMessagesByRoom = {
 
 const seatLabels = ["North", "East", "South", "West", "Observer", "Support"];
 const editorTypes = new Set(["showcase", "definitionEditor"]);
+const definitionsDirectory = new URL("./games/definitions/", import.meta.url);
 
 function createPlayer(name, color, seat, isHost = false, isOnline = true) {
   return { id: randomUUID(), name, color, seat, isHost, isOnline };
@@ -289,6 +291,45 @@ export function createStore() {
     ];
   }
 
+  async function submitEditorDefinition(clientId, roomId, content) {
+    const room = rooms.get(roomId);
+    const session = requireSession(clientId);
+    if (!room) {
+      throw new Error("Room not found.");
+    }
+    if (session.roomId !== roomId) {
+      throw new Error("Join the editor room before submitting a definition.");
+    }
+    if (room.mode !== "edit" || room.editorType !== "definitionEditor") {
+      throw new Error("This room is not a definition editor room.");
+    }
+
+    const fileName = `editor-${room.id.toLowerCase()}.definition.js`;
+    await writeFile(new URL(fileName, definitionsDirectory), String(content ?? ""), "utf8");
+    messagesByRoom[roomId] = [
+      ...(messagesByRoom[roomId] ?? []),
+      createMessage("System", `${session.user.name} saved ${fileName}.`, "system"),
+    ];
+    return { fileName };
+  }
+
+  async function getGameDefinitionSource(gameType) {
+    const definition = getGameDefinition(gameType);
+    if (!definition?.sourceFile) {
+      throw new Error("Definition source file not found.");
+    }
+    const content = await readFile(
+      new URL(definition.sourceFile, definitionsDirectory),
+      "utf8",
+    );
+    return {
+      type: definition.type,
+      title: definition.title,
+      sourceFile: definition.sourceFile,
+      content,
+    };
+  }
+
   function disconnect(clientId) {
     const session = sessions.get(clientId);
     if (session?.roomId) {
@@ -380,6 +421,8 @@ export function createStore() {
     createRoom,
     joinRoom,
     sendChat,
+    submitEditorDefinition,
+    getGameDefinitionSource,
     startNewGame,
     handleGameAction,
     invalidateGameRoomsForTypes,

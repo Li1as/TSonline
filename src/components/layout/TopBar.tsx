@@ -4,6 +4,7 @@ import { useAppState } from "../../state/AppContext";
 
 const navItems = [
   { label: "Home", to: "/" },
+  { label: "Games", to: "/games" },
   { label: "Rooms", to: "/rooms" },
 ];
 

@@ -51,6 +51,7 @@ export function listGameDefinitionSummaries() {
     players: definition.players,
     turn: definition.turn,
     playable: isPlayableGameType(definition.type),
+    sourceFile: definition.sourceFile,
   }));
 }
 
