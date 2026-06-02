@@ -6,6 +6,7 @@ import { createRandomName } from "./names.js";
 import { createStore } from "./store.js";
 import { initializeGameRegistry, reloadGameRegistry } from "./games/registry.js";
 import { createStandalonePackage } from "./standalone-package.js";
+import { generateDefinitionFromDescription } from "./ai-definition-generator.js";
 
 const port = Number(process.env.WS_PORT ?? 8787);
 const host = process.env.WS_HOST ?? "127.0.0.1";
@@ -128,6 +129,19 @@ wss.on("connection", (socket) => {
         );
         send(socket, "editor:definition:submit_result", result, requestId);
         broadcastSnapshot();
+        return;
+      }
+      if (type === "editor:definition:generate") {
+        const result = await generateDefinitionFromDescription(
+          payload.apiUrl,
+          payload.description,
+          {
+            apiKey: payload.apiKey,
+            model: payload.model,
+            maxTokens: payload.maxTokens,
+          },
+        );
+        send(socket, "editor:definition:generate_result", result, requestId);
         return;
       }
       if (type === "game:definition:source") {

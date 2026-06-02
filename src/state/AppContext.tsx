@@ -28,6 +28,9 @@ interface AppStateValue {
   createRoom: (input: CreateRoomInput) => Promise<string | null>;
   joinRoom: (roomId: string) => Promise<boolean>;
   sendMessage: (roomId: string, text: string) => Promise<void>;
+  generateDefinitionDraft: (
+    input: GenerateDefinitionInput,
+  ) => Promise<GeneratedDefinitionResult | null>;
   submitDefinitionDraft: (roomId: string, content: string) => Promise<string | null>;
   startNewGame: (roomId: string) => Promise<void>;
   sendGameAction: (roomId: string, action: Record<string, unknown>) => Promise<void>;
@@ -43,6 +46,19 @@ export interface GameDefinitionSource {
   title: string;
   sourceFile: string;
   content: string;
+}
+
+export interface GenerateDefinitionInput {
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+  description: string;
+}
+
+export interface GeneratedDefinitionResult {
+  prompt: string;
+  responseText: string;
+  rawResponseText?: string;
 }
 
 export function AppProvider({ children }: PropsWithChildren) {
@@ -216,6 +232,24 @@ export function AppProvider({ children }: PropsWithChildren) {
     [sendRequest],
   );
 
+  const generateDefinitionDraft = useCallback(
+    async (input: GenerateDefinitionInput) => {
+      try {
+        const result = (await sendRequest("editor:definition:generate", {
+          apiUrl: input.apiUrl,
+          apiKey: input.apiKey,
+          model: input.model,
+          description: input.description,
+        })) as GeneratedDefinitionResult;
+        setErrorMessage(null);
+        return result;
+      } catch {
+        return null;
+      }
+    },
+    [sendRequest],
+  );
+
   const submitDefinitionDraft = useCallback(
     async (roomId: string, content: string) => {
       try {
@@ -280,6 +314,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       createRoom,
       joinRoom,
       sendMessage,
+      generateDefinitionDraft,
       submitDefinitionDraft,
       startNewGame,
       sendGameAction,
@@ -300,6 +335,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       createRoom,
       joinRoom,
       sendMessage,
+      generateDefinitionDraft,
       submitDefinitionDraft,
       startNewGame,
       sendGameAction,
