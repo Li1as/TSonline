@@ -165,6 +165,45 @@ export function applyEffect(definition, state, action, effect, context = {}, hoo
     };
   }
 
+  if (effect.type === "dealDamage") {
+    const playerId = resolvePlayerSelector(effect.target, state, action, context);
+    const amount = Math.max(0, resolveEffectValue(effect.amount, action, context));
+    const shieldAttribute = effect.shieldAttribute ?? "shield";
+    const hpAttribute = effect.hpAttribute ?? "hp";
+    const attributesByPlayerId = state.vars.playerAttributesByPlayerId ?? {};
+    const currentAttributes = attributesByPlayerId[playerId] ?? {};
+    const currentShield = currentAttributes[shieldAttribute] ?? 0;
+    const absorbedDamage = Math.min(currentShield, amount);
+    const remainingDamage = amount - absorbedDamage;
+    const nextShield = clampPlayerAttribute(
+      definition,
+      shieldAttribute,
+      currentShield - absorbedDamage,
+    );
+    const nextHp = clampPlayerAttribute(
+      definition,
+      hpAttribute,
+      (currentAttributes[hpAttribute] ?? 0) - remainingDamage,
+    );
+
+    return {
+      state: {
+        ...state,
+        vars: {
+          ...state.vars,
+          playerAttributesByPlayerId: {
+            ...attributesByPlayerId,
+            [playerId]: {
+              ...currentAttributes,
+              [shieldAttribute]: nextShield,
+              [hpAttribute]: nextHp,
+            },
+          },
+        },
+      },
+    };
+  }
+
   if (effect.type === "drawCards") {
     return moveTopCardsBetweenZones(state, {
       fromZoneId: resolveZoneSelector(effect.from, state, action, context),

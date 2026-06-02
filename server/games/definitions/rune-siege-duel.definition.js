@@ -1,4 +1,4 @@
-const iconUrl = "/icons.svg";
+const iconUrl = "/favicon.svg";
 
 function copies(count, template) {
   return Array.from({ length: count }, (_, index) => ({
@@ -18,7 +18,13 @@ const strike = copies(8, {
   props: { kind: "attack", timing: "instant" },
   effects: {
     onPlay: [
-      { type: "modifyPlayerAttribute", target: "opponent", attribute: "hp", amount: -1 },
+      {
+        type: "dealDamage",
+        target: "opponent",
+        amount: 1,
+        shieldAttribute: "shield",
+        hpAttribute: "hp",
+      },
     ],
   },
 });
@@ -34,7 +40,13 @@ const blast = copies(4, {
   props: { kind: "attack", timing: "instant" },
   effects: {
     onPlay: [
-      { type: "modifyPlayerAttribute", target: "opponent", attribute: "hp", amount: -2 },
+      {
+        type: "dealDamage",
+        target: "opponent",
+        amount: 2,
+        shieldAttribute: "shield",
+        hpAttribute: "hp",
+      },
     ],
   },
 });
@@ -49,11 +61,21 @@ const recover = copies(5, {
   value: 2,
   props: { kind: "heal", timing: "instant" },
   playConditions: [
-    { type: "playerAttributeBelow", target: "actor", attribute: "hp", value: 8 },
+    {
+      type: "playerAttributeBelow",
+      target: "actor",
+      attribute: "hp",
+      value: 8,
+    },
   ],
   effects: {
     onPlay: [
-      { type: "modifyPlayerAttribute", target: "actor", attribute: "hp", amount: 2 },
+      {
+        type: "modifyPlayerAttribute",
+        target: "actor",
+        attribute: "hp",
+        amount: 2,
+      },
     ],
   },
 });
@@ -69,7 +91,12 @@ const focus = copies(5, {
   props: { kind: "resource", timing: "instant" },
   effects: {
     onPlay: [
-      { type: "modifyPlayerAttribute", target: "actor", attribute: "energy", amount: 2 },
+      {
+        type: "modifyPlayerAttribute",
+        target: "actor",
+        attribute: "energy",
+        amount: 2,
+      },
     ],
   },
 });
@@ -85,7 +112,12 @@ const guard = copies(5, {
   props: { kind: "defense", timing: "instant" },
   effects: {
     onPlay: [
-      { type: "modifyPlayerAttribute", target: "actor", attribute: "shield", amount: 2 },
+      {
+        type: "modifyPlayerAttribute",
+        target: "actor",
+        attribute: "shield",
+        amount: 2,
+      },
     ],
   },
 });
@@ -100,9 +132,7 @@ const insight = copies(4, {
   value: 2,
   props: { kind: "draw", timing: "instant" },
   effects: {
-    onPlay: [
-      { type: "drawCards", from: "deck", to: "hand:<actor>", count: 2 },
-    ],
+    onPlay: [{ type: "drawCards", from: "deck", to: "hand:<actor>", count: 2 }],
   },
 });
 
@@ -141,7 +171,12 @@ export const runeSiegeDuelDefinition = {
   setup: {
     initialPhase: "playing",
     deck: { from: "cardTemplates", shuffle: true, zone: "deck" },
-    deal: { strategy: "fixedCountToPlayers", from: "deck", to: "hand:<playerId>", count: 5 },
+    deal: {
+      strategy: "fixedCountToPlayers",
+      from: "deck",
+      to: "hand:<playerId>",
+      count: 5,
+    },
     emptyVars: {
       currentPlayerId: null,
       winnerId: null,
@@ -173,9 +208,27 @@ export const runeSiegeDuelDefinition = {
     },
   ],
   zones: [
-    { id: "deck", label: "Rune Deck", owner: "game", visibility: "hidden", accepts: ["card"] },
-    { id: "discard", label: "Archive", owner: "game", visibility: "public", accepts: ["card"] },
-    { id: "hand", label: "Hand", owner: "player", visibility: "owner", accepts: ["card"] },
+    {
+      id: "deck",
+      label: "Rune Deck",
+      owner: "game",
+      visibility: "hidden",
+      accepts: ["card"],
+    },
+    {
+      id: "discard",
+      label: "Archive",
+      owner: "game",
+      visibility: "public",
+      accepts: ["card"],
+    },
+    {
+      id: "hand",
+      label: "Hand",
+      owner: "player",
+      visibility: "owner",
+      accepts: ["card"],
+    },
   ],
   actions: [
     { type: "game:new", label: "New Game" },
@@ -195,14 +248,24 @@ export const runeSiegeDuelDefinition = {
         },
       ],
     },
-    { type: "round:pass", label: "Pass", conditions: [{ type: "currentPlayerIsActor" }], effects: [] },
+    {
+      type: "round:pass",
+      label: "Pass",
+      conditions: [{ type: "currentPlayerIsActor" }],
+      effects: [],
+    },
   ],
   triggers: [
     {
       event: "TURN_STARTED",
       when: { type: "always" },
       effects: [
-        { type: "drawCards", from: "deck", to: "hand:<currentPlayer>", count: 1 },
+        {
+          type: "drawCards",
+          from: "deck",
+          to: "hand:<currentPlayer>",
+          count: 1,
+        },
       ],
     },
   ],

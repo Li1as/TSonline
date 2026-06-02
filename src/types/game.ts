@@ -166,6 +166,13 @@ export type GameEffect =
       amount: number | string;
     }
   | {
+      type: "dealDamage";
+      target: string;
+      amount: number | string;
+      shieldAttribute?: string;
+      hpAttribute?: string;
+    }
+  | {
       type: "setCurrentPlayer";
       playerId: string | null;
     }
